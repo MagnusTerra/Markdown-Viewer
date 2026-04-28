@@ -2841,7 +2841,8 @@ This is a fully client-side application. Your content never leaves your browser 
       const activeEl = document.activeElement;
       const isTextControl = activeEl && (activeEl.tagName === "TEXTAREA" || activeEl.tagName === "INPUT");
       const hasSelection = window.getSelection && window.getSelection().toString().trim().length > 0;
-      if (!isTextControl && !hasSelection) {
+      const editorHasSelection = markdownEditor.selectionStart !== markdownEditor.selectionEnd;
+      if (!isTextControl && !hasSelection && !editorHasSelection) {
         e.preventDefault();
         copyMarkdownButton.click();
       }
