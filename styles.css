@@ -281,10 +281,10 @@ body {
   border: 1px solid var(--border-color);
   color: var(--text-color);
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   font-size: 14px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   transition: all 0.2s ease;
@@ -300,6 +300,15 @@ body {
 
 .tool-button i {
   font-size: 16px;
+}
+
+.btn-text {
+  display: none;
+}
+
+.toolbar .tool-button.sync-active {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
 }
 
 .file-input {
@@ -927,22 +936,23 @@ a:focus {
 }
 
 .header-left {
-  flex: 1;
+  flex: 1 0 auto;
   justify-content: flex-start;
+  white-space: nowrap;
 }
 
 .header-right {
-  flex: 1;
+  flex: 1 0 auto;
   justify-content: flex-end;
+  white-space: nowrap;
 }
 
 /* View Mode Button Group */
 .view-mode-group {
   display: flex;
   gap: 0;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 1;
+  justify-content: center;
 }
 
 .view-mode-btn {
@@ -1013,11 +1023,24 @@ a:focus {
   flex: 1;
 }
 
-/* Responsive adjustments for view mode buttons */
-@media (max-width: 1079px) {
-  .view-mode-group {
-    position: static;
-    transform: none;
+/* Responsive adjustments for view mode buttons and toolbar */
+@media (max-width: 1280px) {
+  /* Icon-only view mode buttons at medium widths */
+  .view-mode-btn span {
+    display: none;
+  }
+
+  .view-mode-btn {
+    padding: 5px 10px;
+  }
+
+  .view-mode-btn.active {
+    padding: 4px 9px;
+  }
+
+  /* Compact toolbar at medium widths */
+  .toolbar {
+    gap: 4px;
   }
 }
 

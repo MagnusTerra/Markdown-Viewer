@@ -106,12 +106,12 @@
 
                 <!-- Right section: Toolbar -->
                 <div class="toolbar d-none d-md-flex header-right">
-                    <button id="toggle-sync" class="tool-button sync-enabled border-primary" title="Toggle Sync Scrolling">
-                        <i class="bi bi-link"></i> Sync Off
+                    <button id="toggle-sync" class="tool-button sync-enabled sync-active" title="Toggle Sync Scrolling">
+                        <i class="bi bi-link"></i> <span class="btn-text">Sync Off</span>
                     </button>
                     <div class="dropdown">
                         <button class="tool-button dropdown-toggle" type="button" id="importDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Import Markdown">
-                            <i class="bi bi-upload"></i> Import
+                            <i class="bi bi-upload"></i> <span class="btn-text">Import</span>
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="importDropdown">
                             <li><a class="dropdown-item" href="#" id="import-from-file">From files</a></li>
@@ -121,8 +121,8 @@
                     <input type="file" id="file-input" class="file-input" accept=".md,.markdown,text/markdown">
                     
                     <div class="dropdown">
-                        <button class="tool-button dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-download"></i> Export
+                        <button class="tool-button dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Export Markdown">
+                            <i class="bi bi-download"></i> <span class="btn-text">Export</span>
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="exportDropdown">
                             <li><a class="dropdown-item" href="#" id="export-md">Markdown (.md)</a></li>
@@ -132,11 +132,11 @@
                     </div>
                     
                     <button id="copy-markdown-button" class="tool-button" title="Copy Markdown">
-                        <i class="bi bi-clipboard"></i> Copy
+                        <i class="bi bi-clipboard"></i> <span class="btn-text">Copy</span>
                     </button>
                     
                     <button id="share-button" class="tool-button" title="Share via URL">
-                        <i class="bi bi-share"></i> Share
+                        <i class="bi bi-share"></i> <span class="btn-text">Share</span>
                     </button>
                     
                     <button id="theme-toggle" class="tool-button" title="Toggle Dark Mode">
@@ -203,7 +203,7 @@
                         </div>
 
                         <div class="mobile-menu-items">
-                            <button id="mobile-toggle-sync" class="mobile-menu-item tool-button sync-enabled border-primary" title="Toggle Sync Scrolling">
+                            <button id="mobile-toggle-sync" class="mobile-menu-item tool-button sync-enabled sync-active" title="Toggle Sync Scrolling">
                                 <i class="bi bi-link"></i> Sync Off
                             </button>
                             

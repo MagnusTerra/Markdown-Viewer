@@ -1511,15 +1511,15 @@ This is a fully client-side application. Your content never leaves your browser 
   function toggleSyncScrolling() {
     syncScrollingEnabled = !syncScrollingEnabled;
     if (syncScrollingEnabled) {
-      toggleSyncButton.innerHTML = '<i class="bi bi-link-45deg"></i> Sync Off';
+      toggleSyncButton.innerHTML = '<i class="bi bi-link-45deg"></i> <span class="btn-text">Sync Off</span>';
       toggleSyncButton.classList.add("sync-disabled");
       toggleSyncButton.classList.remove("sync-enabled");
-      toggleSyncButton.classList.add("border-primary");
+      toggleSyncButton.classList.add("sync-active");
     } else {
-      toggleSyncButton.innerHTML = '<i class="bi bi-link"></i> Sync On';
+      toggleSyncButton.innerHTML = '<i class="bi bi-link"></i> <span class="btn-text">Sync On</span>';
       toggleSyncButton.classList.add("sync-enabled");
       toggleSyncButton.classList.remove("sync-disabled");
-      toggleSyncButton.classList.remove("border-primary");
+      toggleSyncButton.classList.remove("sync-active");
     }
     saveGlobalState({ syncScrollingEnabled });
   }
@@ -1705,12 +1705,12 @@ This is a fully client-side application. Your content never leaves your browser 
       mobileToggleSync.innerHTML = '<i class="bi bi-link-45deg me-2"></i> Sync Off';
       mobileToggleSync.classList.add("sync-disabled");
       mobileToggleSync.classList.remove("sync-enabled");
-      mobileToggleSync.classList.add("border-primary");
+      mobileToggleSync.classList.add("sync-active");
     } else {
       mobileToggleSync.innerHTML = '<i class="bi bi-link me-2"></i> Sync On';
       mobileToggleSync.classList.add("sync-enabled");
       mobileToggleSync.classList.remove("sync-disabled");
-      mobileToggleSync.classList.remove("border-primary");
+      mobileToggleSync.classList.remove("sync-active");
     }
   });
   mobileImportBtn.addEventListener("click", () => fileInput.click());
