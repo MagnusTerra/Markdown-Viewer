@@ -2793,11 +2793,13 @@ This is a fully client-side application. Your content never leaves your browser 
   }, false);
 
   document.addEventListener("dragleave", function(e) {
-    dragDepth--;
-    if (dragDepth <= 0) {
-      dragDepth = 0;
-      dragOverlay.classList.remove("active");
-      dragOverlay.setAttribute("aria-hidden", "true");
+    if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes("Files")) {
+      dragDepth--;
+      if (dragDepth <= 0) {
+        dragDepth = 0;
+        dragOverlay.classList.remove("active");
+        dragOverlay.setAttribute("aria-hidden", "true");
+      }
     }
   }, false);
 
