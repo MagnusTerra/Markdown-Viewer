@@ -21,8 +21,13 @@
   </p>
 
   <p>
-    <a href="https://deepwiki.com/ThisIs-Developer/Markdown-Viewer"><img src="https://deepwiki.com/badge.svg" /></a>
-  </p>
+  <a href="https://deepwiki.com/ThisIs-Developer/Markdown-Viewer">
+    <img src="https://deepwiki.com/badge.svg" />
+  </a>
+  <a href="https://oosmetrics.com/repo/ThisIs-Developer/Markdown-Viewer">
+    <img src="https://api.oosmetrics.com/api/v1/badge/achievement/b13c27be-447e-489d-a04d-55f7ccaf9175.svg" />
+  </a>
+</p>
 </div>
 
 ---
