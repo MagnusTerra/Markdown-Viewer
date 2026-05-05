@@ -20,8 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const exportHtml = document.getElementById("export-html");
   const exportPdf = document.getElementById("export-pdf");
   const copyMarkdownButton = document.getElementById("copy-markdown-button");
-  const dropzone = document.getElementById("dropzone");
-  const closeDropzoneBtn = document.getElementById("close-dropzone");
+  const dragOverlay = document.getElementById("drag-overlay");
   const toggleSyncButton = document.getElementById("toggle-sync");
   const editorPane = document.getElementById("markdown-editor");
   const previewPane = document.querySelector(".preview-pane");
@@ -976,7 +975,6 @@ This is a fully client-side application. Your content never leaves your browser 
     const reader = new FileReader();
     reader.onload = function(e) {
       newTab(e.target.result, file.name.replace(/\.md$/i, ''));
-      dropzone.style.display = "none";
     };
     reader.readAsText(file);
   }
@@ -2776,44 +2774,40 @@ This is a fully client-side application. Your content never leaves your browser 
 
   loadFromShareHash();
 
-  const dropEvents = ["dragenter", "dragover", "dragleave", "drop"];
+  // Full-window drag-and-drop: track nesting level for reliable enter/leave detection
+  let dragDepth = 0;
 
-  dropEvents.forEach((eventName) => {
-    dropzone.addEventListener(eventName, preventDefaults, false);
-    document.body.addEventListener(eventName, preventDefaults, false);
-  });
-
-  function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, highlight, false);
-  });
-
-  ["dragleave", "drop"].forEach((eventName) => {
-    dropzone.addEventListener(eventName, unhighlight, false);
-  });
-
-  function highlight() {
-    dropzone.classList.add("active");
-  }
-
-  function unhighlight() {
-    dropzone.classList.remove("active");
-  }
-
-  dropzone.addEventListener("drop", handleDrop, false);
-  dropzone.addEventListener("click", function (e) {
-    if (e.target !== closeDropzoneBtn && !closeDropzoneBtn.contains(e.target)) {
-      fileInput.click();
+  document.addEventListener("dragenter", function(e) {
+    if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+      dragDepth++;
+      dragOverlay.classList.add("active");
+      dragOverlay.setAttribute("aria-hidden", "false");
     }
-  });
-  closeDropzoneBtn.addEventListener("click", function(e) {
-    e.stopPropagation(); 
-    dropzone.style.display = "none";
-  });
+  }, false);
+
+  document.addEventListener("dragover", function(e) {
+    if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes("Files")) {
+      e.preventDefault();
+    }
+  }, false);
+
+  document.addEventListener("dragleave", function(e) {
+    dragDepth--;
+    if (dragDepth <= 0) {
+      dragDepth = 0;
+      dragOverlay.classList.remove("active");
+      dragOverlay.setAttribute("aria-hidden", "true");
+    }
+  }, false);
+
+  document.addEventListener("drop", function(e) {
+    e.preventDefault();
+    dragDepth = 0;
+    dragOverlay.classList.remove("active");
+    dragOverlay.setAttribute("aria-hidden", "true");
+    handleDrop(e);
+  }, false);
 
   function handleDrop(e) {
     const dt = e.dataTransfer;

@@ -9,7 +9,6 @@
   --button-bg: #f6f8fa;
   --button-hover: #e1e4e8;
   --button-active: #d1d5da;
-  --dropzone-bg: rgba(255, 255, 255, 0.8);
   --scrollbar-thumb: #c1c1c1;
   --scrollbar-track: #f1f1f1;
   --accent-color: #0366d6;
@@ -28,7 +27,6 @@
   --button-bg: #21262d;
   --button-hover: #30363d;
   --button-active: #3b434b;
-  --dropzone-bg: rgba(13, 17, 23, 0.8);
   --scrollbar-thumb: #484f58;
   --scrollbar-track: #21262d;
   --accent-color: #58a6ff;
@@ -315,28 +313,73 @@ body {
   display: none;
 }
 
-.dropzone {
-  border: 2px dashed var(--border-color);
-  border-radius: 6px;
-  padding: 20px;
+/* Drag overlay: full-screen drop target shown when user drags a file over the window */
+.drag-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.drag-overlay.active {
+  display: flex;
+  pointer-events: auto;
+}
+
+.drag-overlay-inner {
+  border: 3px dashed var(--accent-color);
+  border-radius: 12px;
+  padding: 48px 64px;
   text-align: center;
-  margin-bottom: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: var(--dropzone-bg);
+  color: #ffffff;
+  background-color: rgba(3, 102, 214, 0.15);
+  animation: overlayPulse 1.4s ease-in-out infinite;
 }
 
-.dropzone.active {
-  border-color: var(--accent-color);
-  background-color: rgba(var(--accent-color), 0.05);
+.drag-overlay-icon {
+  display: block;
+  font-size: 3rem;
+  margin-bottom: 12px;
+  color: var(--accent-color);
 }
 
-.dropzone p {
-  transition: transform 0.2s ease;
+.drag-overlay-text {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
 
-.dropzone:hover p {
-  transform: scale(1.02);
+.drag-overlay-sub {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin-bottom: 0;
+}
+
+@keyframes overlayPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+
+/* Editor drop hint: subtle text at bottom of editor pane, shown only when empty */
+.drop-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-color);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+
+.editor-pane:has(#markdown-editor:not(:placeholder-shown)) .drop-hint {
+  display: none;
 }
 
 /* Dropdown improvements */
@@ -590,62 +633,6 @@ a:focus {
   opacity: 0.8;
 }
 
-.dropzone {
-  border: 2px dashed var(--border-color);
-  border-radius: 6px;
-  padding: 20px;
-  text-align: center;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: var(--dropzone-bg);
-  position: relative;
-}
-
-.dropzone.active {
-  border-color: var(--accent-color);
-  background-color: rgba(var(--accent-color), 0.05);
-}
-
-.dropzone p {
-  transition: transform 0.2s ease;
-}
-
-.dropzone:hover {
-  border: var(--accent-color) 2px dashed;
-}
-
-.dropzone:hover p {
-  transform: scale(1.02);
-}
-
-.close-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  background: none;
-  border: none;
-  color: var(--text-color);
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  opacity: 0.6;
-  transition: all 0.2s ease;
-  background-color: var(--button-bg);
-  border: 1px solid var(--border-color);
-}
-
-.close-btn:hover {
-  opacity: 1;
-  background-color: var(--color-danger-fg);
-}
-
 .editor-pane {
   overflow: hidden;
 }
@@ -770,11 +757,6 @@ a:focus {
 #close-mobile-menu.tool-button {
   padding: 0.25rem 0.5rem;
   font-size: 1rem;
-}
-
-/* ensure dropzone doesn’t cover menu */
-.mobile-menu-panel .dropzone {
-  margin-bottom: 0;
 }
 
 /* Mobile document tabs section */
