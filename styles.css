@@ -147,8 +147,12 @@ body {
 }
 
 .markdown-body a.reference-link {
-  font-size: 0.9em;
+  font-size: 0.75em;
   letter-spacing: -0.02em;
+  line-height: 1;
+  vertical-align: super;
+  position: relative;
+  top: 0.08em;
 }
 
 /* Style tables in light mode */
@@ -1784,8 +1788,8 @@ a:focus {
 }
 
 .reset-modal-box--wide {
-  width: min(92vw, 560px);
-  max-width: 560px;
+  width: min(92vw, 640px);
+  max-width: 640px;
 }
 
 .reset-modal-message {
