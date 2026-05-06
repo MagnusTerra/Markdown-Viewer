@@ -9,6 +9,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode State - Story 1.1
   let currentViewMode = 'split'; // 'editor', 'split', or 'preview'
+  let activeModal = null;
+  let lastFocusedElement = null;
+  let isFindModalOpen = false;
+  let findMatches = [];
+  let activeFindIndex = -1;
+  let lastFindQuery = '';
 
   const markdownEditor = document.getElementById("markdown-editor");
   const markdownPreview = document.getElementById("markdown-preview");
@@ -31,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode Elements - Story 1.1
   const contentContainer = document.querySelector(".content-container");
-  const viewModeButtons = document.querySelectorAll(".view-mode-btn");
+  const viewModeButtons = document.querySelectorAll(".view-toggle-btn");
 
   // Mobile View Mode Elements - Story 1.4
   const mobileViewModeButtons = document.querySelectorAll(".mobile-view-mode-btn");
@@ -72,6 +78,27 @@ document.addEventListener("DOMContentLoaded", function () {
   const githubImportError = document.getElementById("github-import-error");
   const githubImportCancelBtn = document.getElementById("github-import-cancel");
   const githubImportSubmitBtn = document.getElementById("github-import-submit");
+  const editorHighlightLayer = document.getElementById("editor-highlight-layer");
+  const clearFormattingModal = document.getElementById("clear-formatting-modal");
+  const clearFormattingConfirm = document.getElementById("clear-formatting-confirm");
+  const clearFormattingCancel = document.getElementById("clear-formatting-cancel");
+  const clearFormattingClose = document.getElementById("clear-formatting-close");
+  const findReplaceModal = document.getElementById("find-replace-modal");
+  const findReplaceInput = document.getElementById("find-replace-input");
+  const findReplaceWith = document.getElementById("find-replace-with");
+  const findReplaceCount = document.getElementById("find-replace-count");
+  const findReplacePrev = document.getElementById("find-prev");
+  const findReplaceNext = document.getElementById("find-next");
+  const findReplaceCurrent = document.getElementById("find-replace-current");
+  const findReplaceAll = document.getElementById("find-replace-all");
+  const findReplaceClose = document.getElementById("find-replace-close");
+  const findReplaceCloseIcon = document.getElementById("find-replace-close-icon");
+  const helpModal = document.getElementById("help-modal");
+  const helpModalClose = document.getElementById("help-modal-close");
+  const helpModalCloseIcon = document.getElementById("help-modal-close-icon");
+  const aboutModal = document.getElementById("about-modal");
+  const aboutModalClose = document.getElementById("about-modal-close");
+  const aboutModalCloseIcon = document.getElementById("about-modal-close-icon");
 
   // ========================================
   // GLOBAL STATE (persisted across reloads)
@@ -1075,6 +1102,7 @@ This is a fully client-side application. Your content never leaves your browser 
       }
 
       updateDocumentStats();
+      updateFindHighlights();
       cleanupImageObjectUrls();
     } catch (e) {
       console.error("Markdown rendering failed:", e);
@@ -1686,12 +1714,12 @@ This is a fully client-side application. Your content never leaves your browser 
 
     // Update button active states (desktop)
     viewModeButtons.forEach(btn => {
-      const btnMode = btn.getAttribute('data-mode');
+      const btnMode = btn.getAttribute('data-view-mode');
       if (btnMode === mode) {
-        btn.classList.add('active');
+        btn.classList.add('is-active');
         btn.setAttribute('aria-pressed', 'true');
       } else {
-        btn.classList.remove('active');
+        btn.classList.remove('is-active');
         btn.setAttribute('aria-pressed', 'false');
       }
     });
@@ -2876,30 +2904,315 @@ This is a fully client-side application. Your content never leaves your browser 
     });
   }
 
-  function findInMarkdownEditor() {
-    const selected = markdownEditor.value.slice(markdownEditor.selectionStart, markdownEditor.selectionEnd);
-    const query = prompt('Find in document', selected);
-    if (!query) return;
-    const value = markdownEditor.value;
-    const fromIndex = markdownEditor.selectionEnd < value.length ? markdownEditor.selectionEnd : 0;
-    let foundAt = value.toLowerCase().indexOf(query.toLowerCase(), fromIndex);
-    if (foundAt === -1 && fromIndex > 0) {
-      foundAt = value.toLowerCase().indexOf(query.toLowerCase(), 0);
-    }
-    if (foundAt === -1) {
-      alert('No matches found.');
+  function escapeRegExp(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function getFocusableElements(container) {
+    return Array.from(container.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+      .filter(element => !element.disabled && element.offsetParent !== null);
+  }
+
+  function trapFocusInModal(modal, event) {
+    const focusable = getFocusableElements(modal);
+    if (!focusable.length) {
+      event.preventDefault();
       return;
     }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function openAppModal(modal, options = {}) {
+    if (!modal) return;
+    if (activeModal && activeModal !== modal) {
+      closeAppModal(activeModal);
+    }
+    lastFocusedElement = document.activeElement;
+    modal.style.display = 'flex';
+    requestAnimationFrame(function() {
+      modal.classList.add('is-visible');
+    });
+    modal.setAttribute('aria-hidden', 'false');
+    activeModal = modal;
+    const focusTarget = options.focusTarget || getFocusableElements(modal)[0];
+    if (focusTarget) {
+      focusTarget.focus();
+    }
+    const handleKeydown = function(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (options.onClose) {
+          options.onClose();
+        } else {
+          closeAppModal(modal);
+        }
+      } else if (event.key === 'Tab') {
+        trapFocusInModal(modal, event);
+      }
+    };
+    const handlePointerDown = function(event) {
+      if (event.target === modal) {
+        if (options.onClose) {
+          options.onClose();
+        } else {
+          closeAppModal(modal);
+        }
+      }
+    };
+    modal.addEventListener('keydown', handleKeydown);
+    modal.addEventListener('mousedown', handlePointerDown);
+    modal._modalHandlers = { handleKeydown, handlePointerDown };
+  }
+
+  function closeAppModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('is-visible');
+    modal.setAttribute('aria-hidden', 'true');
+    const handlers = modal._modalHandlers || {};
+    if (handlers.handleKeydown) modal.removeEventListener('keydown', handlers.handleKeydown);
+    if (handlers.handlePointerDown) modal.removeEventListener('mousedown', handlers.handlePointerDown);
+    if (activeModal === modal) activeModal = null;
+    window.setTimeout(function() {
+      if (!modal.classList.contains('is-visible')) {
+        modal.style.display = 'none';
+      }
+    }, 200);
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      lastFocusedElement.focus();
+    }
+  }
+
+  function updateFindHighlights() {
+    if (!editorHighlightLayer) return;
+    const text = markdownEditor.value || '';
+    const scrollTop = markdownEditor.scrollTop;
+    const scrollLeft = markdownEditor.scrollLeft;
+    if (!isFindModalOpen || !findReplaceInput || !findReplaceInput.value || !findMatches.length) {
+      editorHighlightLayer.textContent = text;
+      editorHighlightLayer.scrollTop = scrollTop;
+      editorHighlightLayer.scrollLeft = scrollLeft;
+      return;
+    }
+    let html = '';
+    let lastIndex = 0;
+    findMatches.forEach(function(match, index) {
+      html += escapeHtml(text.slice(lastIndex, match.start));
+      const matchText = escapeHtml(text.slice(match.start, match.end));
+      html += '<mark class="find-highlight' + (index === activeFindIndex ? ' active' : '') + '">' + matchText + '</mark>';
+      lastIndex = match.end;
+    });
+    html += escapeHtml(text.slice(lastIndex));
+    editorHighlightLayer.innerHTML = html;
+    editorHighlightLayer.scrollTop = scrollTop;
+    editorHighlightLayer.scrollLeft = scrollLeft;
+  }
+
+  function syncHighlightScroll() {
+    if (!editorHighlightLayer) return;
+    editorHighlightLayer.scrollTop = markdownEditor.scrollTop;
+    editorHighlightLayer.scrollLeft = markdownEditor.scrollLeft;
+  }
+
+  function computeFindMatches(value, query) {
+    if (!query) return [];
+    const haystack = value.toLowerCase();
+    const needle = query.toLowerCase();
+    const matches = [];
+    let index = 0;
+    while (needle && (index = haystack.indexOf(needle, index)) !== -1) {
+      matches.push({ start: index, end: index + needle.length });
+      index += needle.length || 1;
+    }
+    return matches;
+  }
+
+  function updateFindControls() {
+    if (!findReplaceCount) return;
+    const total = findMatches.length;
+    const current = total && activeFindIndex >= 0 ? activeFindIndex + 1 : 0;
+    findReplaceCount.textContent = current + ' of ' + total + ' matches';
+    const hasMatches = total > 0;
+    const hasQuery = !!(findReplaceInput && findReplaceInput.value);
+    if (findReplacePrev) findReplacePrev.disabled = !hasMatches;
+    if (findReplaceNext) findReplaceNext.disabled = !hasMatches;
+    if (findReplaceCurrent) findReplaceCurrent.disabled = !hasMatches;
+    if (findReplaceAll) findReplaceAll.disabled = !hasQuery || !hasMatches;
+  }
+
+  function refreshFindMatches(options) {
+    const opts = options || {};
+    const query = findReplaceInput ? findReplaceInput.value : '';
+    if (!isFindModalOpen || !query) {
+      findMatches = [];
+      activeFindIndex = -1;
+      updateFindControls();
+      updateFindHighlights();
+      return;
+    }
+    findMatches = computeFindMatches(markdownEditor.value, query);
+    if (opts.resetIndex || query !== lastFindQuery) {
+      activeFindIndex = findMatches.length ? 0 : -1;
+    } else if (activeFindIndex >= findMatches.length) {
+      activeFindIndex = findMatches.length - 1;
+    }
+    lastFindQuery = query;
+    updateFindControls();
+    updateFindHighlights();
+  }
+
+  function selectActiveMatch() {
+    if (!findMatches.length || activeFindIndex < 0) return;
+    const match = findMatches[activeFindIndex];
     markdownEditor.focus();
-    markdownEditor.setSelectionRange(foundAt, foundAt + query.length);
+    markdownEditor.setSelectionRange(match.start, match.end);
   }
 
-  function showMarkdownToolbarHelp() {
-    alert('Use the toolbar to format selected text, add headings and lists, insert links/images/code/tables, switch views, search, or clear simple Markdown syntax.');
+  function moveFindMatch(direction) {
+    if (!findMatches.length) return;
+    activeFindIndex = (activeFindIndex + direction + findMatches.length) % findMatches.length;
+    updateFindControls();
+    updateFindHighlights();
+    selectActiveMatch();
   }
 
-  function showMarkdownDocumentInfo() {
-    alert('Words: ' + wordCountElement.textContent + '\nCharacters: ' + charCountElement.textContent + '\nReading time: ' + readingTimeElement.textContent + ' min');
+  function openFindReplaceModal() {
+    if (!findReplaceModal || !findReplaceInput) return;
+    isFindModalOpen = true;
+    const selected = markdownEditor.value.slice(markdownEditor.selectionStart, markdownEditor.selectionEnd);
+    if (selected) {
+      findReplaceInput.value = selected;
+    }
+    openAppModal(findReplaceModal, { focusTarget: findReplaceInput, onClose: closeFindReplaceModal });
+    requestAnimationFrame(function() {
+      findReplaceInput.focus();
+      findReplaceInput.select();
+    });
+    refreshFindMatches({ resetIndex: true });
+    if (findMatches.length) {
+      selectActiveMatch();
+    }
+  }
+
+  function closeFindReplaceModal() {
+    isFindModalOpen = false;
+    closeAppModal(findReplaceModal);
+    findMatches = [];
+    activeFindIndex = -1;
+    updateFindControls();
+    updateFindHighlights();
+  }
+
+  function replaceCurrentMatch() {
+    if (!findMatches.length) return;
+    const replacement = findReplaceWith ? findReplaceWith.value : '';
+    const match = findMatches[activeFindIndex];
+    replaceEditorRange(match.start, match.end, replacement, match.start, match.start + replacement.length);
+    refreshFindMatches();
+    if (findMatches.length) {
+      selectActiveMatch();
+    }
+  }
+
+  function replaceAllMatches() {
+    const query = findReplaceInput ? findReplaceInput.value : '';
+    if (!query) return;
+    const replacement = findReplaceWith ? findReplaceWith.value : '';
+    const regex = new RegExp(escapeRegExp(query), 'gi');
+    markdownEditor.value = markdownEditor.value.replace(regex, replacement);
+    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+    refreshFindMatches({ resetIndex: true });
+    if (findMatches.length) {
+      selectActiveMatch();
+    }
+  }
+
+  function openClearFormattingModal() {
+    if (!clearFormattingModal) return;
+    openAppModal(clearFormattingModal, { focusTarget: clearFormattingConfirm || clearFormattingCancel });
+  }
+
+  function applyClearFormatting() {
+    const stripped = stripBasicMarkdown(markdownEditor.value);
+    replaceEditorRange(0, markdownEditor.value.length, stripped, 0, 0);
+  }
+
+  function openHelpModal() {
+    if (!helpModal) return;
+    openAppModal(helpModal, { focusTarget: helpModalClose || helpModalCloseIcon });
+  }
+
+  function openAboutModal() {
+    if (!aboutModal) return;
+    openAppModal(aboutModal, { focusTarget: aboutModalClose || aboutModalCloseIcon });
+  }
+
+  function initFindReplaceModal() {
+    if (!findReplaceModal || !findReplaceInput) return;
+    findReplaceInput.addEventListener('input', function() {
+      refreshFindMatches({ resetIndex: true });
+    });
+    findReplaceInput.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        moveFindMatch(event.shiftKey ? -1 : 1);
+      }
+    });
+    if (findReplaceWith) {
+      findReplaceWith.addEventListener('input', updateFindControls);
+    }
+    if (findReplacePrev) {
+      findReplacePrev.addEventListener('click', function() { moveFindMatch(-1); });
+    }
+    if (findReplaceNext) {
+      findReplaceNext.addEventListener('click', function() { moveFindMatch(1); });
+    }
+    if (findReplaceCurrent) {
+      findReplaceCurrent.addEventListener('click', replaceCurrentMatch);
+    }
+    if (findReplaceAll) {
+      findReplaceAll.addEventListener('click', replaceAllMatches);
+    }
+    if (findReplaceClose) {
+      findReplaceClose.addEventListener('click', closeFindReplaceModal);
+    }
+    if (findReplaceCloseIcon) {
+      findReplaceCloseIcon.addEventListener('click', closeFindReplaceModal);
+    }
+  }
+
+  function initAppModals() {
+    if (clearFormattingConfirm) {
+      clearFormattingConfirm.addEventListener('click', function() {
+        applyClearFormatting();
+        closeAppModal(clearFormattingModal);
+      });
+    }
+    if (clearFormattingCancel) {
+      clearFormattingCancel.addEventListener('click', function() { closeAppModal(clearFormattingModal); });
+    }
+    if (clearFormattingClose) {
+      clearFormattingClose.addEventListener('click', function() { closeAppModal(clearFormattingModal); });
+    }
+    if (helpModalClose) {
+      helpModalClose.addEventListener('click', function() { closeAppModal(helpModal); });
+    }
+    if (helpModalCloseIcon) {
+      helpModalCloseIcon.addEventListener('click', function() { closeAppModal(helpModal); });
+    }
+    if (aboutModalClose) {
+      aboutModalClose.addEventListener('click', function() { closeAppModal(aboutModal); });
+    }
+    if (aboutModalCloseIcon) {
+      aboutModalCloseIcon.addEventListener('click', function() { closeAppModal(aboutModal); });
+    }
   }
 
   function runMarkdownTool(action, button) {
@@ -2945,15 +3258,13 @@ This is a fully client-side application. Your content never leaves your browser 
     else if (action === 'symbols') openSymbolsModal();
     else if (action === 'alert') openAlertModal();
     else if (action === 'terminal-block') insertMarkdownBlock('```bash\nnpm run dev\n```\n');
-    else if (action === 'editor-only') { setViewMode('editor'); saveCurrentTabState(); }
-    else if (action === 'split-view') { setViewMode('split'); saveCurrentTabState(); }
     else if (action === 'fullscreen') {
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
       else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-    } else if (action === 'clear-formatting') transformSelectionOrCurrentLine(stripBasicMarkdown);
-    else if (action === 'find') findInMarkdownEditor();
-    else if (action === 'help') showMarkdownToolbarHelp();
-    else if (action === 'info') showMarkdownDocumentInfo();
+    } else if (action === 'clear-formatting') openClearFormattingModal();
+    else if (action === 'find') openFindReplaceModal();
+    else if (action === 'help') openHelpModal();
+    else if (action === 'info') openAboutModal();
   }
 
   function initMarkdownFormatToolbar() {
@@ -3121,6 +3432,8 @@ This is a fully client-side application. Your content never leaves your browser 
   initTabs();
   if (loadGlobalState().syncScrollingEnabled === false) toggleSyncScrolling();
   updateMobileStats();
+  updateFindHighlights();
+  syncHighlightScroll();
 
   // Initialize resizer - Story 1.3
   initResizer();
@@ -3128,8 +3441,12 @@ This is a fully client-side application. Your content never leaves your browser 
   // View Mode Button Event Listeners - Story 1.1
   viewModeButtons.forEach(btn => {
     btn.addEventListener('click', function() {
-      const mode = this.getAttribute('data-mode');
-      setViewMode(mode);
+      const mode = this.getAttribute('data-view-mode');
+      if ((mode === 'editor' || mode === 'preview') && currentViewMode === mode) {
+        setViewMode('split');
+      } else {
+        setViewMode(mode);
+      }
       saveCurrentTabState();
     });
   });
@@ -3148,12 +3465,24 @@ This is a fully client-side application. Your content never leaves your browser 
     debouncedRender();
     clearTimeout(saveTabStateTimeout);
     saveTabStateTimeout = setTimeout(saveCurrentTabState, 500);
+    if (isFindModalOpen) {
+      refreshFindMatches();
+    } else {
+      updateFindHighlights();
+    }
   });
 
   initMarkdownFormatToolbar();
+  initFindReplaceModal();
+  initAppModals();
   
   // Editor key handlers for list continuation and indentation
   markdownEditor.addEventListener("keydown", function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      e.preventDefault();
+      openFindReplaceModal();
+      return;
+    }
     if (handleListEnter(e)) {
       return;
     }
@@ -3179,7 +3508,10 @@ This is a fully client-side application. Your content never leaves your browser 
     }
   });
   
-  editorPane.addEventListener("scroll", syncEditorToPreview);
+  editorPane.addEventListener("scroll", function() {
+    syncEditorToPreview();
+    syncHighlightScroll();
+  });
   previewPane.addEventListener("scroll", syncPreviewToEditor);
   toggleSyncButton.addEventListener("click", toggleSyncScrolling);
   themeToggle.addEventListener("click", function () {

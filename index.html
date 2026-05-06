@@ -88,24 +88,20 @@
                     </div>
                 </div>
 
-                <!-- Center section: View Mode Buttons -->
-                <div class="view-mode-group d-none d-md-flex" role="group" aria-label="View mode">
-                    <button class="view-mode-btn" data-mode="editor" aria-pressed="false" title="Editor only">
-                        <i class="bi bi-file-text"></i>
-                        <span>Editor</span>
-                    </button>
-                    <button class="view-mode-btn active" data-mode="split" aria-pressed="true" title="Split view">
-                        <i class="bi bi-layout-split"></i>
-                        <span>Split</span>
-                    </button>
-                    <button class="view-mode-btn" data-mode="preview" aria-pressed="false" title="Preview only">
-                        <i class="bi bi-eye"></i>
-                        <span>Preview</span>
-                    </button>
-                </div>
-
                 <!-- Right section: Toolbar -->
                 <div class="toolbar d-none d-md-flex header-right">
+                    <div class="toolbar-group view-toolbar" role="group" aria-label="View mode">
+                        <button class="tool-button view-toggle-btn" data-view-mode="editor" aria-pressed="false" title="Editor only" aria-label="Editor only">
+                            <i class="bi bi-file-text"></i>
+                        </button>
+                        <button class="tool-button view-toggle-btn is-active" data-view-mode="split" aria-pressed="true" title="Split view" aria-label="Split view">
+                            <i class="bi bi-layout-split"></i>
+                        </button>
+                        <button class="tool-button view-toggle-btn" data-view-mode="preview" aria-pressed="false" title="Preview only" aria-label="Preview only">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <span class="toolbar-divider" aria-hidden="true"></span>
                     <button id="toggle-sync" class="tool-button sync-enabled sync-active" title="Toggle Sync Scrolling">
                         <i class="bi bi-link"></i> <span class="btn-text">Sync Off</span>
                     </button>
@@ -259,6 +255,7 @@
           <div class="markdown-toolbar-group">
             <button type="button" class="markdown-tool-btn" data-md-action="undo" title="Undo" aria-label="Undo"><i class="bi bi-arrow-counterclockwise"></i></button>
             <button type="button" class="markdown-tool-btn" data-md-action="redo" title="Redo" aria-label="Redo"><i class="bi bi-arrow-clockwise"></i></button>
+            <button type="button" class="markdown-tool-btn" data-md-action="clear-formatting" title="Clear Markdown formatting" aria-label="Clear Markdown formatting"><i class="bi bi-eraser"></i></button>
           </div>
           <div class="markdown-toolbar-group">
             <button type="button" class="markdown-tool-btn" data-md-action="bold" title="Bold" aria-label="Bold"><i class="bi bi-type-bold"></i></button>
@@ -296,13 +293,10 @@
             <button type="button" class="markdown-tool-btn" data-md-action="alert" title="Markdown alert" aria-label="Markdown alert"><i class="bi bi-newspaper"></i></button>
           </div>
           <div class="markdown-toolbar-group">
-            <button type="button" class="markdown-tool-btn" data-md-action="editor-only" title="Editor only" aria-label="Editor only"><i class="bi bi-eye-slash"></i></button>
-            <button type="button" class="markdown-tool-btn" data-md-action="split-view" title="Split view" aria-label="Split view"><i class="bi bi-display"></i></button>
             <button type="button" class="markdown-tool-btn" data-md-action="fullscreen" title="Fullscreen" aria-label="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
-            <button type="button" class="markdown-tool-btn" data-md-action="clear-formatting" title="Clear Markdown formatting" aria-label="Clear Markdown formatting"><i class="bi bi-eraser"></i></button>
-            <button type="button" class="markdown-tool-btn" data-md-action="find" title="Find in document" aria-label="Find in document"><i class="bi bi-search"></i></button>
-            <button type="button" class="markdown-tool-btn" data-md-action="help" title="Toolbar help" aria-label="Toolbar help"><i class="bi bi-question-circle"></i></button>
-            <button type="button" class="markdown-tool-btn" data-md-action="info" title="Document info" aria-label="Document info"><i class="bi bi-info-circle"></i></button>
+            <button type="button" class="markdown-tool-btn" data-md-action="find" title="Find &amp; Replace" aria-label="Find &amp; Replace"><i class="bi bi-search"></i></button>
+            <button type="button" class="markdown-tool-btn" data-md-action="help" title="Help" aria-label="Help"><i class="bi bi-question-circle"></i></button>
+            <button type="button" class="markdown-tool-btn" data-md-action="info" title="About Markdown" aria-label="About Markdown"><i class="bi bi-info-circle"></i></button>
           </div>
         </div>
 
@@ -313,6 +307,165 @@
             <div class="reset-modal-actions">
               <button class="reset-modal-btn reset-modal-cancel" id="reset-modal-cancel">Cancel</button>
               <button class="reset-modal-btn reset-modal-confirm" id="reset-modal-confirm">Delete All</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clear Markdown Formatting Modal -->
+        <div id="clear-formatting-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="clear-formatting-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box reset-modal-box--wide modal-box">
+            <div class="modal-header">
+              <p id="clear-formatting-title" class="reset-modal-message">Clear Markdown formatting?</p>
+              <button type="button" class="modal-close-btn" id="clear-formatting-close" aria-label="Close clear formatting dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <p class="modal-subtext">Only the Markdown formatting in this document content is cleared. The file itself is not deleted.</p>
+            <div class="reset-modal-actions">
+              <button class="reset-modal-btn reset-modal-cancel" id="clear-formatting-cancel">Cancel</button>
+              <button class="reset-modal-btn reset-modal-confirm" id="clear-formatting-confirm">Clear Markdown</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Find & Replace Modal -->
+        <div id="find-replace-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="find-replace-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box reset-modal-box--wide reset-modal-box--xl modal-box">
+            <div class="modal-header">
+              <p id="find-replace-title" class="reset-modal-message">Find &amp; Replace</p>
+              <button type="button" class="modal-close-btn" id="find-replace-close-icon" aria-label="Close find and replace dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="reset-modal-field">
+                <label class="reset-modal-label" for="find-replace-input">Find</label>
+                <input type="text" id="find-replace-input" class="rename-modal-input" placeholder="Find word or phrase" />
+              </div>
+              <div class="reset-modal-field">
+                <label class="reset-modal-label" for="find-replace-with">Replace</label>
+                <input type="text" id="find-replace-with" class="rename-modal-input" placeholder="Replace with" />
+              </div>
+              <div class="find-replace-meta">
+                <span id="find-replace-count" class="find-match-count">0 of 0 matches</span>
+                <div class="find-replace-nav">
+                  <button type="button" class="tool-button find-nav-btn" id="find-prev" title="Previous match" aria-label="Previous match">
+                    <i class="bi bi-chevron-up"></i>
+                  </button>
+                  <button type="button" class="tool-button find-nav-btn" id="find-next" title="Next match" aria-label="Next match">
+                    <i class="bi bi-chevron-down"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="reset-modal-actions">
+              <button class="reset-modal-btn reset-modal-cancel" id="find-replace-close">Close</button>
+              <button class="reset-modal-btn" id="find-replace-current">Replace</button>
+              <button class="reset-modal-btn" id="find-replace-all">Replace All</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div id="help-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box reset-modal-box--xl modal-box">
+            <div class="modal-header">
+              <p id="help-modal-title" class="reset-modal-message">Markdown Viewer Help</p>
+              <button type="button" class="modal-close-btn" id="help-modal-close-icon" aria-label="Close help dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="modal-section">
+                <h3 class="modal-section-title">Application shortcuts</h3>
+                <ul class="modal-list">
+                  <li>Use the view buttons in the toolbar to switch between Editor, Split, and Preview modes.</li>
+                  <li>Sync scrolling is available in Split view to keep the editor and preview aligned.</li>
+                  <li>Import, Export, Copy, Share, and Theme toggle actions are always available in the header toolbar.</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Toolbar descriptions</h3>
+                <ul class="modal-list">
+                  <li>Undo/Redo and Clear Formatting help you manage editing changes quickly.</li>
+                  <li>Text styling tools cover bold, italic, strikethrough, quotes, headings, and list formatting.</li>
+                  <li>Insert helpers add links, images, code blocks, tables, emojis, symbols, and alerts.</li>
+                  <li>Use Fullscreen, Find &amp; Replace, Help, and About Markdown for focused editing.</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Markdown tips</h3>
+                <ul class="modal-list">
+                  <li>Create headings with <code>#</code>, <code>##</code>, and <code>###</code> prefixes.</li>
+                  <li>Emphasize text with <code>**bold**</code>, <code>*italic*</code>, or <code>~~strikethrough~~</code>.</li>
+                  <li>Use <code>-</code> or <code>1.</code> to build lists, and triple backticks for code blocks.</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Keyboard shortcuts</h3>
+                <ul class="modal-list">
+                  <li><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd> &mdash; Undo</li>
+                  <li><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> &mdash; Redo</li>
+                  <li><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>F</kbd> &mdash; Open Find &amp; Replace</li>
+                  <li><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>C</kbd>/<kbd>V</kbd> &mdash; Copy/Paste</li>
+                </ul>
+              </div>
+            </div>
+            <div class="reset-modal-actions">
+              <button class="reset-modal-btn reset-modal-cancel" id="help-modal-close">Close</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- About Markdown Modal -->
+        <div id="about-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="about-modal-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box reset-modal-box--xl modal-box">
+            <div class="modal-header">
+              <p id="about-modal-title" class="reset-modal-message">About Markdown</p>
+              <button type="button" class="modal-close-btn" id="about-modal-close-icon" aria-label="Close about dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="about-header">
+                <img src="assets/icon.jpg" alt="Markdown Viewer logo" class="about-logo" />
+                <div class="about-details">
+                  <h3 class="about-title">Markdown Viewer</h3>
+                  <p class="about-description">A GitHub-style Markdown editor with live preview, diagrams, math, syntax highlighting, and export tools.</p>
+                  <p class="about-meta">Version 1.0.0 &bull; Apache License 2.0 &bull; Open source</p>
+                </div>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Open-source links</h3>
+                <ul class="modal-list">
+                  <li><a href="https://github.com/ThisIs-Developer/Markdown-Viewer/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Apache License 2.0</a></li>
+                  <li><a href="https://github.com/ThisIs-Developer/Markdown-Viewer" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+                  <li><a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Contributing" target="_blank" rel="noopener noreferrer">Contribution Guide</a></li>
+                  <li><a href="https://github.com/ThisIs-Developer/Markdown-Viewer/issues/new/choose" target="_blank" rel="noopener noreferrer">Report an Issue</a></li>
+                  <li><a href="https://github.com/ThisIs-Developer/Markdown-Viewer/discussions" target="_blank" rel="noopener noreferrer">Community &amp; Support</a></li>
+                </ul>
+                <p class="modal-subtext">For feature requests, open a GitHub issue or start a discussion so the community can weigh in.</p>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Markdown resources</h3>
+                <ul class="modal-list">
+                  <li><a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Markdown-Reference" target="_blank" rel="noopener noreferrer">Markdown syntax reference</a></li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Technology stack</h3>
+                <ul class="modal-list">
+                  <li>HTML, CSS, and JavaScript with Bootstrap 5 for layout and styling.</li>
+                  <li>Marked, DOMPurify, Highlight.js, Mermaid, MathJax, and Emoji Toolkit for rendering.</li>
+                </ul>
+              </div>
+              <div class="modal-section">
+                <h3 class="modal-section-title">Open-source credits</h3>
+                <p class="modal-subtext">Markdown Viewer is built on top of open-source libraries maintained by the community. Thank you to every contributor and maintainer.</p>
+              </div>
+            </div>
+            <div class="reset-modal-actions">
+              <button class="reset-modal-btn reset-modal-cancel" id="about-modal-close">Close</button>
             </div>
           </div>
         </div>
@@ -500,6 +653,7 @@
 
         <div class="content-container">
             <div class="editor-pane">
+                <div id="editor-highlight-layer" class="editor-highlight-layer" aria-hidden="true"></div>
                 <textarea id="markdown-editor" placeholder="Type or paste your Markdown here..."></textarea>
                 <div class="drop-hint" aria-hidden="true">
                     <i class="bi bi-cloud-arrow-up me-1"></i>Drop a .md file anywhere to open it
