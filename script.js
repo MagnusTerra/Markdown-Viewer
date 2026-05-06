@@ -1499,12 +1499,15 @@ This is a fully client-side application. Your content never leaves your browser 
   function scheduleEmojiLookupRefresh() {
     if (emojiLookupLoaded || emojiRenderScheduled) return;
     emojiRenderScheduled = true;
-    loadEmojiEntries().then(() => {
-      emojiRenderScheduled = false;
-      if (emojiUrlMap.size) {
-        renderMarkdown();
-      }
-    });
+    loadEmojiEntries()
+      .then(() => {
+        if (emojiUrlMap.size) {
+          renderMarkdown();
+        }
+      })
+      .finally(() => {
+        emojiRenderScheduled = false;
+      });
   }
 
   function processEmojis(element) {
