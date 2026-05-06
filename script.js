@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode State - Story 1.1
   let currentViewMode = 'split'; // 'editor', 'split', or 'preview'
+  const APP_VERSION = '1.0.0';
   let activeModal = null;
   let lastFocusedElement = null;
   let isFindModalOpen = false;
@@ -99,6 +100,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const aboutModal = document.getElementById("about-modal");
   const aboutModalClose = document.getElementById("about-modal-close");
   const aboutModalCloseIcon = document.getElementById("about-modal-close-icon");
+  const aboutVersion = document.getElementById("about-version");
+  if (aboutVersion) {
+    aboutVersion.textContent = APP_VERSION;
+  }
 
   // ========================================
   // GLOBAL STATE (persisted across reloads)
@@ -1756,6 +1761,13 @@ This is a fully client-side application. Your content never leaves your browser 
     }
   }
 
+  function resolveViewToggleMode(mode) {
+    if ((mode === 'editor' || mode === 'preview') && currentViewMode === mode) {
+      return 'split';
+    }
+    return mode;
+  }
+
   // Story 1.2: Update sync toggle visibility
   function updateSyncToggleVisibility(mode) {
     const isSplitView = mode === 'split';
@@ -3077,7 +3089,7 @@ This is a fully client-side application. Your content never leaves your browser 
     markdownEditor.setSelectionRange(match.start, match.end);
   }
 
-  function moveFindMatch(direction) {
+  function cycleFindMatch(direction) {
     const totalMatches = findMatches.length;
     if (!totalMatches) return;
     activeFindIndex = (activeFindIndex + direction + totalMatches) % totalMatches;
@@ -3166,17 +3178,17 @@ This is a fully client-side application. Your content never leaves your browser 
     findReplaceInput.addEventListener('keydown', function(event) {
       if (event.key === 'Enter') {
         event.preventDefault();
-        moveFindMatch(event.shiftKey ? -1 : 1);
+        cycleFindMatch(event.shiftKey ? -1 : 1);
       }
     });
     if (findReplaceWith) {
       findReplaceWith.addEventListener('input', updateFindControls);
     }
     if (findReplacePrev) {
-      findReplacePrev.addEventListener('click', function() { moveFindMatch(-1); });
+      findReplacePrev.addEventListener('click', function() { cycleFindMatch(-1); });
     }
     if (findReplaceNext) {
-      findReplaceNext.addEventListener('click', function() { moveFindMatch(1); });
+      findReplaceNext.addEventListener('click', function() { cycleFindMatch(1); });
     }
     if (findReplaceCurrent) {
       findReplaceCurrent.addEventListener('click', replaceCurrentMatch);
@@ -3446,11 +3458,7 @@ This is a fully client-side application. Your content never leaves your browser 
   viewModeButtons.forEach(btn => {
     btn.addEventListener('click', function() {
       const mode = this.getAttribute('data-view-mode');
-      if ((mode === 'editor' || mode === 'preview') && currentViewMode === mode) {
-        setViewMode('split');
-      } else {
-        setViewMode(mode);
-      }
+      setViewMode(resolveViewToggleMode(mode));
       saveCurrentTabState();
     });
   });
