@@ -1106,10 +1106,12 @@ This is a fully client-side application. Your content never leaves your browser 
       cleanupImageObjectUrls();
     } catch (e) {
       console.error("Markdown rendering failed:", e);
+      const safeMessage = escapeHtml(e && e.message ? e.message : 'Unknown error');
+      const safeMarkdown = escapeHtml(markdownEditor.value);
       markdownPreview.innerHTML = `<div class="alert alert-danger">
-              <strong>Error rendering markdown:</strong> ${e.message}
+              <strong>Error rendering markdown:</strong> ${safeMessage}
           </div>
-          <pre>${markdownEditor.value}</pre>`;
+          <pre>${safeMarkdown}</pre>`;
     }
   }
 
@@ -3076,8 +3078,9 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function moveFindMatch(direction) {
-    if (!findMatches.length) return;
-    activeFindIndex = (activeFindIndex + direction + findMatches.length) % findMatches.length;
+    const totalMatches = findMatches.length;
+    if (!totalMatches) return;
+    activeFindIndex = (activeFindIndex + direction + totalMatches) % totalMatches;
     updateFindControls();
     updateFindHighlights();
     selectActiveMatch();
@@ -3117,6 +3120,7 @@ This is a fully client-side application. Your content never leaves your browser 
     replaceEditorRange(match.start, match.end, replacement, match.start, match.start + replacement.length);
     refreshFindMatches();
     if (findMatches.length) {
+      activeFindIndex = Math.min(activeFindIndex, findMatches.length - 1);
       selectActiveMatch();
     }
   }
