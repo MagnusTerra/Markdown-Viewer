@@ -82,6 +82,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const EMOJI_API_URL = 'https://api.github.com/emojis';
   let emojiLoadPromise = null;
   let emojiEntries = [];
+  let emojiUrlMap = new Map();
+  let emojiLookupLoaded = false;
+  let emojiRenderScheduled = false;
   let emojiItems = [];
   const emojiSelection = new Set();
   let symbolItems = [];
@@ -1493,6 +1496,17 @@ This is a fully client-side application. Your content never leaves your browser 
     }
   }
 
+  function scheduleEmojiLookupRefresh() {
+    if (emojiLookupLoaded || emojiRenderScheduled) return;
+    emojiRenderScheduled = true;
+    loadEmojiEntries().then(() => {
+      emojiRenderScheduled = false;
+      if (emojiUrlMap.size) {
+        renderMarkdown();
+      }
+    });
+  }
+
   function processEmojis(element) {
     const walker = document.createTreeWalker(
       element,
@@ -1519,14 +1533,15 @@ This is a fully client-side application. Your content never leaves your browser 
       }
     }
     
+    let needsEmojiLookup = false;
     textNodes.forEach(textNode => {
       const text = textNode.nodeValue;
       const emojiRegex = /:([\w+-]+):/g;
       
       let match;
       let lastIndex = 0;
-      let result = '';
       let hasEmoji = false;
+      const fragment = document.createDocumentFragment();
       
       while ((match = emojiRegex.exec(text)) !== null) {
         const shortcode = match[1];
@@ -1534,21 +1549,43 @@ This is a fully client-side application. Your content never leaves your browser 
         
         if (emoji !== `:${shortcode}:`) { // If conversion was successful
           hasEmoji = true;
-          result += text.substring(lastIndex, match.index) + emoji;
+          if (match.index > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+          }
+          fragment.appendChild(document.createTextNode(emoji));
           lastIndex = emojiRegex.lastIndex;
         } else {
-          result += text.substring(lastIndex, emojiRegex.lastIndex);
-          lastIndex = emojiRegex.lastIndex;
+          const emojiUrl = emojiUrlMap.get(shortcode);
+          if (emojiUrl) {
+            hasEmoji = true;
+            if (match.index > lastIndex) {
+              fragment.appendChild(document.createTextNode(text.substring(lastIndex, match.index)));
+            }
+            const image = document.createElement('img');
+            image.className = 'emoji-inline';
+            image.src = emojiUrl;
+            image.alt = `:${shortcode}:`;
+            image.loading = 'lazy';
+            image.setAttribute('aria-label', `:${shortcode}:`);
+            fragment.appendChild(image);
+            lastIndex = emojiRegex.lastIndex;
+          } else if (!emojiLookupLoaded) {
+            needsEmojiLookup = true;
+          }
         }
       }
       
       if (hasEmoji) {
-        result += text.substring(lastIndex);
-        const span = document.createElement('span');
-        span.innerHTML = result;
-        textNode.parentNode.replaceChild(span, textNode);
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        textNode.parentNode.replaceChild(fragment, textNode);
       }
     });
+
+    if (needsEmojiLookup) {
+      scheduleEmojiLookupRefresh();
+    }
   }
 
   function debouncedRender() {
@@ -2115,11 +2152,15 @@ This is a fully client-side application. Your content never leaves your browser 
             shortcode: `:${name}:`,
             search: `${name} :${name}:`.toLowerCase(),
           }));
+        emojiUrlMap = new Map(emojiEntries.map((entry) => [entry.name, entry.url]));
+        emojiLookupLoaded = true;
         return emojiEntries;
       })
       .catch((error) => {
         console.error('Failed to load GitHub emojis:', error);
         emojiEntries = [];
+        emojiUrlMap = new Map();
+        emojiLookupLoaded = true;
         return emojiEntries;
       });
     return emojiLoadPromise;

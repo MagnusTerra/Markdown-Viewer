@@ -182,6 +182,12 @@ body {
   padding: 0.2em 0.4em;
 }
 
+.markdown-body img.emoji-inline {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.1em;
+}
+
 .markdown-body .markdown-alert {
   padding: 0.5rem 1rem;
   margin-bottom: 16px;
