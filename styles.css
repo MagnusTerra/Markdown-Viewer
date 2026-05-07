@@ -83,6 +83,7 @@ body {
   background-color: var(--editor-bg);
   border-right: 1px solid var(--border-color);
   padding-right: 0px;
+  --line-number-gutter: 0px;
 }
 
 .preview-pane {
@@ -127,10 +128,11 @@ body {
   font-size: 14px;
   line-height: 1.5;
   padding: 10px;
+  padding-left: calc(10px + var(--line-number-gutter));
   transition: background-color 0.3s ease, color 0.3s ease;
   overflow-y: auto;
   position: relative;
-  z-index: 2;
+  z-index: 3;
 }
 
 #markdown-editor:focus {
@@ -433,9 +435,37 @@ body {
   display: none;
 }
 
+.line-numbers {
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 20px;
+  width: var(--line-number-gutter);
+  padding: 10px 8px 10px 0;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: right;
+  color: var(--text-color);
+  opacity: 0.55;
+  background-color: var(--editor-bg);
+  border-right: 1px solid var(--border-color);
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-numbers .line-number {
+  display: block;
+  height: auto;
+}
+
 .editor-highlight-layer {
   position: absolute;
-  inset: 20px 0 20px 20px;
+  inset: 20px 0 20px calc(20px + var(--line-number-gutter));
   padding: 10px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 14px;
