@@ -291,7 +291,7 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   };
   const GITHUB_ALERT_MARKER_REGEX = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s+|$)/i;
-  const GITHUB_ALERT_MARKER_HTML_REGEX = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s|&nbsp;|<br\s*\/?>)*/i;
+  const GITHUB_ALERT_MARKER_REPLACEMENT_REGEX = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s|&nbsp;|<br\s*\/?>)*/i;
 
   function enhanceGitHubAlerts(container) {
     if (!container) return;
@@ -338,7 +338,7 @@ document.addEventListener("DOMContentLoaded", function () {
       blockquote.insertBefore(title, blockquote.firstChild);
 
     const remainingHtml = firstParagraphHtml
-      .replace(GITHUB_ALERT_MARKER_HTML_REGEX, "")
+      .replace(GITHUB_ALERT_MARKER_REPLACEMENT_REGEX, "")
       .trim();
       if (remainingHtml) {
         firstParagraph.innerHTML = remainingHtml;
@@ -2170,12 +2170,14 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function insertAlignmentBlock(align) {
+    const allowedAlignments = new Set(['left', 'center', 'right']);
+    const safeAlign = allowedAlignments.has(align) ? align : 'left';
     const value = markdownEditor.value;
     const start = markdownEditor.selectionStart;
     const end = markdownEditor.selectionEnd;
     const selected = value.slice(start, end);
     const hasSelection = start !== end;
-    const blockStart = `<div align="${align}">\n`;
+    const blockStart = `<div align="${safeAlign}">\n`;
     const blockEnd = `\n</div>`;
     const block = `${blockStart}${hasSelection ? selected : ''}${blockEnd}`;
     const needsLeadingBreak = start > 0 && value[start - 1] !== '\n';
