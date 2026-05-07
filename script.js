@@ -2170,7 +2170,11 @@ This is a fully client-side application. Your content never leaves your browser 
 
   function insertAlignmentBlock(align) {
     const allowedAlignments = new Set(['left', 'center', 'right']);
-    const safeAlign = allowedAlignments.has(align) ? align : 'left';
+    const isAllowed = allowedAlignments.has(align);
+    if (!isAllowed) {
+      console.warn('Unsupported alignment:', align);
+    }
+    const safeAlign = isAllowed ? align : 'left';
     const value = markdownEditor.value;
     const start = markdownEditor.selectionStart;
     const end = markdownEditor.selectionEnd;
