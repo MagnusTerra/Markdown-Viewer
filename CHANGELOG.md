@@ -5,6 +5,14 @@ Non-code commits (documentation, planning, README-only updates) are excluded.
 
 ---
 
+## v3.5.4
+
+- **Description:** Preserved multiline `$$...$$` LaTeX blocks during markdown parsing to ensure complex MathJax equations render correctly. Added a custom markdown extension in both web and desktop scripts to tokenize and retain display math as atomic units, preventing unwanted line-breaks inside equations.
+- **Date:** 2026-05-15
+- **URL:** https://github.com/ThisIs-Developer/Markdown-Viewer/commit/e23425aa39064f108963a111793d621b5eb2cd50
+
+---
+
 ## v3.5.3
 
 - **Description:** Added automated UI testing skill to improve reliability of Markdown Viewer interface validation.
