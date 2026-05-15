@@ -245,13 +245,13 @@ document.addEventListener("DOMContentLoaded", function () {
   let lineNumberUpdateFrame = null;
 
   const renderer = new marked.Renderer();
-  const BLOCK_MATH_START_PATTERN = /\$\$/;
+  const BLOCK_MATH_MARKER_PATTERN = /\$\$/;
   const BLOCK_MATH_PATTERN = /^\$\$[ \t]*\n?([\s\S]+?)\n?\$\$[ \t]*(?:\n|$)/;
   const blockMathExtension = {
     name: 'blockMath',
     level: 'block',
     start(src) {
-      const match = src.match(BLOCK_MATH_START_PATTERN);
+      const match = src.match(BLOCK_MATH_MARKER_PATTERN);
       return match ? match.index : undefined;
     },
     tokenizer(src) {
