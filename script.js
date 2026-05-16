@@ -318,11 +318,22 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace(/>/g, "&gt;");
   }
 
-  function renderDefinitionContent(content) {
-    return content
-      .split(/\n{2,}/)
+  function renderDefinitionContent(content, options = {}) {
+    const { appendHtml = "" } = options;
+    const paragraphs = content
+      .split(/\n\s*\n/)
       .map((paragraph) => paragraph.trim())
-      .filter(Boolean)
+      .filter(Boolean);
+
+    if (appendHtml) {
+      if (paragraphs.length === 0) {
+        paragraphs.push(appendHtml);
+      } else {
+        paragraphs[paragraphs.length - 1] = `${paragraphs[paragraphs.length - 1]}${appendHtml}`;
+      }
+    }
+
+    return paragraphs
       .map((paragraph) => {
         const renderedParagraph = marked.parseInline(paragraph);
         const safeParagraph = typeof DOMPurify !== "undefined"
@@ -339,30 +350,42 @@ document.addEventListener("DOMContentLoaded", function () {
     let index = 0;
 
     while (index < lines.length) {
-      const match = /^\[\^([^\]\n]+)\]:[ \t]*(.*)$/.exec(lines[index]);
+      const match = /^([ \t]{0,3})\[\^([^\]\n]+)\]:[ \t]*(.*)$/.exec(lines[index]);
       if (!match) {
         preservedLines.push(lines[index]);
         index += 1;
         continue;
       }
 
-      const id = match[1].trim();
-      const definitionLines = [match[2] || ""];
+      const baseIndent = match[1] || "";
+      const id = match[2].trim();
+      const definitionLines = [match[3] || ""];
       index += 1;
 
       while (index < lines.length) {
         const line = lines[index];
-        const indentedMatch = /^(?: {4}|\t)(.*)$/.exec(line);
+        if (!line.startsWith(baseIndent)) {
+          break;
+        }
+
+        const lineAfterBase = line.slice(baseIndent.length);
+        const indentedMatch = /^(?: {2,}|\t)(.*)$/.exec(lineAfterBase);
         if (indentedMatch) {
           definitionLines.push(indentedMatch[1]);
           index += 1;
           continue;
         }
 
-        if (line === "" && /^(?: {4}|\t)/.test(lines[index + 1] || "")) {
-          definitionLines.push("");
-          index += 1;
-          continue;
+        if (lineAfterBase.trim() === "") {
+          const nextLine = lines[index + 1] || "";
+          const nextAfterBase = nextLine.startsWith(baseIndent)
+            ? nextLine.slice(baseIndent.length)
+            : "";
+          if (/^(?: {2,}|\t)/.test(nextAfterBase)) {
+            definitionLines.push("");
+            index += 1;
+            continue;
+          }
         }
 
         break;
@@ -404,11 +427,15 @@ document.addEventListener("DOMContentLoaded", function () {
       .filter((id) => footnoteDefinitions.has(id))
       .map((id) => {
         const normalizedId = normalizeFootnoteId(id);
-        const noteHtml = renderDefinitionContent(footnoteDefinitions.get(id) || "");
         const backRefId = footnoteFirstRefId.get(id) || `fnref-${normalizedId}`;
         const safeNormalizedId = escapeHtmlAttribute(normalizedId);
         const safeBackRefId = escapeHtmlAttribute(backRefId);
-        return `<li id="fn-${safeNormalizedId}">${noteHtml}<a href="#${safeBackRefId}" class="footnote-backref" aria-label="Back to content">↩</a></li>`;
+        const backRefHtml = `<a href="#${safeBackRefId}" class="footnote-backref" aria-label="Back to content">↩</a>`;
+        const noteHtml = renderDefinitionContent(
+          footnoteDefinitions.get(id) || "",
+          { appendHtml: backRefHtml }
+        );
+        return `<li id="fn-${safeNormalizedId}">${noteHtml}</li>`;
       })
       .join("");
 
