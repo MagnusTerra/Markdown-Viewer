@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function () {
     mermaid.initialize({
       startOnLoad: false,
       theme: mermaidTheme,
-      securityLevel: 'loose',
+      securityLevel: 'strict',
       flowchart: { useMaxWidth: true, htmlLabels: true },
       fontSize: 16
     });
@@ -641,7 +641,11 @@ document.addEventListener("DOMContentLoaded", function () {
   renderer.code = function (code, language) {
     if (language === 'mermaid') {
       const uniqueId = 'mermaid-diagram-' + Math.random().toString(36).substr(2, 9);
-      return `<div class="mermaid-container"><div class="mermaid" id="${uniqueId}">${code}</div></div>`;
+      const escapedCode = code
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      return `<div class="mermaid-container"><div class="mermaid" id="${uniqueId}">${escapedCode}</div></div>`;
     }
     
     const validLanguage = hljs.getLanguage(language) ? language : "plaintext";
@@ -1173,6 +1177,7 @@ This is a fully client-side application. Your content never leaves your browser 
       item.setAttribute('role', 'tab');
       item.setAttribute('aria-selected', tab.id === currentActiveTabId ? 'true' : 'false');
       item.setAttribute('draggable', 'true');
+      item.setAttribute('tabindex', tab.id === currentActiveTabId ? '0' : '-1');
 
       const titleSpan = document.createElement('span');
       titleSpan.className = 'tab-title';
@@ -1237,6 +1242,36 @@ This is a fully client-side application. Your content never leaves your browser 
     if (activeItem) {
       activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
+
+    // Arrow-key keyboard navigation inside tabList (WAI-ARIA compliance)
+    tabList.onkeydown = function(e) {
+      const currentActiveItem = tabList.querySelector('.tab-item.active');
+      if (!currentActiveItem) return;
+      const items = Array.from(tabList.querySelectorAll('.tab-item'));
+      const activeIdx = items.indexOf(currentActiveItem);
+      
+      let targetIdx = -1;
+      if (e.key === 'ArrowRight') {
+        targetIdx = (activeIdx + 1) % items.length;
+      } else if (e.key === 'ArrowLeft') {
+        targetIdx = (activeIdx - 1 + items.length) % items.length;
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const activeFocused = document.activeElement;
+        if (activeFocused && activeFocused.classList.contains('tab-item')) {
+          const tabId = activeFocused.getAttribute('data-tab-id');
+          switchTab(tabId);
+        }
+      }
+      
+      if (targetIdx !== -1) {
+        e.preventDefault();
+        const targetTabId = items[targetIdx].getAttribute('data-tab-id');
+        switchTab(targetTabId);
+        const newActiveItem = tabList.querySelector(`.tab-item[data-tab-id="${targetTabId}"]`);
+        if (newActiveItem) newActiveItem.focus();
+      }
+    };
 
     renderMobileTabList(tabsArr, currentActiveTabId);
   }
@@ -1364,9 +1399,6 @@ This is a fully client-side application. Your content never leaves your browser 
     const cancelBtn = document.getElementById('rename-modal-cancel');
     if (!modal || !input) return;
     input.value = tab.title;
-    modal.style.display = 'flex';
-    input.focus();
-    input.select();
 
     function doRename() {
       const newName = input.value.trim();
@@ -1375,8 +1407,17 @@ This is a fully client-side application. Your content never leaves your browser 
         saveTabsToStorage(tabs);
         renderTabBar(tabs, activeTabId);
       }
-      modal.style.display = 'none';
+      closeAppModal(modal);
       cleanup();
+    }
+
+    function doCancel() {
+      closeAppModal(modal);
+      cleanup();
+    }
+
+    function onKey(e) {
+      if (e.key === 'Enter') doRename();
     }
 
     function cleanup() {
@@ -1385,19 +1426,15 @@ This is a fully client-side application. Your content never leaves your browser 
       input.removeEventListener('keydown', onKey);
     }
 
-    function doCancel() {
-      modal.style.display = 'none';
-      cleanup();
-    }
-
-    function onKey(e) {
-      if (e.key === 'Enter') doRename();
-      else if (e.key === 'Escape') doCancel();
-    }
-
     confirmBtn.addEventListener('click', doRename);
     cancelBtn.addEventListener('click', doCancel);
     input.addEventListener('keydown', onKey);
+
+    openAppModal(modal, {
+      focusTarget: input,
+      onClose: doCancel
+    });
+    input.select();
   }
 
   function duplicateTab(tabId) {
@@ -1426,10 +1463,9 @@ This is a fully client-side application. Your content never leaves your browser 
     const confirmBtn = document.getElementById('reset-modal-confirm');
     const cancelBtn = document.getElementById('reset-modal-cancel');
     if (!modal) return;
-    modal.style.display = 'flex';
 
     function doReset() {
-      modal.style.display = 'none';
+      closeAppModal(modal);
       cleanup();
       tabs = [];
       untitledCounter = 0;
@@ -1446,7 +1482,7 @@ This is a fully client-side application. Your content never leaves your browser 
     }
 
     function doCancel() {
-      modal.style.display = 'none';
+      closeAppModal(modal);
       cleanup();
     }
 
@@ -1457,13 +1493,28 @@ This is a fully client-side application. Your content never leaves your browser 
 
     confirmBtn.addEventListener('click', doReset);
     cancelBtn.addEventListener('click', doCancel);
+
+    openAppModal(modal, {
+      focusTarget: confirmBtn,
+      onClose: doCancel
+    });
   }
 
   function initTabs() {
     untitledCounter = loadUntitledCounter();
     tabs = loadTabsFromStorage();
     activeTabId = loadActiveTabId();
-    if (tabs.length === 0) {
+
+    // Check if Neutralino passed an initial file via command line (early load)
+    if (window.NL_INITIAL_FILE_CONTENT) {
+      const initialFile = window.NL_INITIAL_FILE_CONTENT;
+      const tab = createTab(initialFile.content, initialFile.name);
+      tabs.push(tab);
+      activeTabId = tab.id;
+      saveTabsToStorage(tabs);
+      saveActiveTabId(activeTabId);
+      delete window.NL_INITIAL_FILE_CONTENT;
+    } else if (tabs.length === 0) {
       const tab = createTab(sampleMarkdown, 'Welcome to Markdown');
       tabs.push(tab);
       activeTabId = tab.id;
@@ -1482,6 +1533,17 @@ This is a fully client-side application. Your content never leaves your browser 
     });
     renderTabBar(tabs, activeTabId);
   }
+
+  // Late-load callback hook for Neutralino command-line files
+  window.NL_IMPORT_EXTERNAL_FILE = function(content, name) {
+    if (typeof tabs === 'undefined') return;
+    const existing = tabs.find(function(t) { return t.title === name && t.content === content; });
+    if (existing) {
+      switchTab(existing.id);
+      return;
+    }
+    newTab(content, name);
+  };
 
   function renderMarkdown() {
     try {
@@ -1543,9 +1605,28 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function importMarkdownFile(file) {
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File is too large (maximum 10MB supported).');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = function(e) {
-      newTab(e.target.result, file.name.replace(/\.md$/i, ''));
+      const text = e.target.result || '';
+      
+      // Simple binary check: look for null bytes in the first 8KB
+      const checkLength = Math.min(text.length, 8000);
+      for (let i = 0; i < checkLength; i++) {
+        if (text.charCodeAt(i) === 0) {
+          alert('Cannot import: The selected file appears to be a binary file.');
+          return;
+        }
+      }
+
+      newTab(text, file.name.replace(/\.md$/i, ''));
+    };
+    reader.onerror = function() {
+      alert('Failed to read the file. Please check permissions and try again.');
     };
     reader.readAsText(file);
   }
@@ -1609,7 +1690,7 @@ This is a fully client-side application. Your content never leaves your browser 
     const segments = parsedUrl.pathname.split("/").filter(Boolean);
 
     if (host === "raw.githubusercontent.com") {
-      if (segments.length < 5) return null;
+      if (segments.length < 4) return null;
       const [owner, repo, ref, ...rest] = segments;
       const filePath = rest.join("/");
       return { owner, repo, ref, type: "file", filePath };
@@ -1821,13 +1902,15 @@ This is a fully client-side application. Your content never leaves your browser 
   function openGitHubImportModal() {
     if (!githubImportModal || !githubImportUrlInput || !githubImportSubmitBtn) return;
     resetGitHubImportModal();
-    githubImportModal.style.display = "flex";
-    githubImportUrlInput.focus();
+    openAppModal(githubImportModal, {
+      focusTarget: githubImportUrlInput,
+      onClose: closeGitHubImportModal
+    });
   }
 
   function closeGitHubImportModal() {
     if (!githubImportModal) return;
-    githubImportModal.style.display = "none";
+    closeAppModal(githubImportModal);
     resetGitHubImportModal();
   }
 
@@ -3847,6 +3930,14 @@ This is a fully client-side application. Your content never leaves your browser 
   function initResizer() {
     if (!resizeDivider) return;
 
+    // Set up WAI-ARIA accessibility tags
+    resizeDivider.setAttribute('role', 'separator');
+    resizeDivider.setAttribute('aria-orientation', 'vertical');
+    resizeDivider.setAttribute('tabindex', '0');
+    resizeDivider.setAttribute('aria-valuemin', MIN_PANE_PERCENT.toString());
+    resizeDivider.setAttribute('aria-valuemax', (100 - MIN_PANE_PERCENT).toString());
+    updateResizerAria();
+
     resizeDivider.addEventListener('mousedown', startResize);
     document.addEventListener('mousemove', handleResize);
     document.addEventListener('mouseup', stopResize);
@@ -3855,6 +3946,30 @@ This is a fully client-side application. Your content never leaves your browser 
     resizeDivider.addEventListener('touchstart', startResizeTouch);
     document.addEventListener('touchmove', handleResizeTouch);
     document.addEventListener('touchend', stopResize);
+
+    resizeDivider.addEventListener('keydown', handleResizerKeydown);
+
+    function handleResizerKeydown(e) {
+      if (currentViewMode !== 'split') return;
+      
+      let delta = 0;
+      if (e.key === 'ArrowLeft') {
+        delta = -5; // Shift left by 5%
+      } else if (e.key === 'ArrowRight') {
+        delta = 5; // Shift right by 5%
+      } else {
+        return;
+      }
+      
+      e.preventDefault();
+      editorWidthPercent = Math.max(MIN_PANE_PERCENT, Math.min(100 - MIN_PANE_PERCENT, editorWidthPercent + delta));
+      applyPaneWidths();
+      updateResizerAria();
+    }
+
+    function updateResizerAria() {
+      resizeDivider.setAttribute('aria-valuenow', Math.round(editorWidthPercent));
+    }
   }
 
   function startResize(e) {
@@ -4214,6 +4329,7 @@ This is a fully client-side application. Your content never leaves your browser 
       };
   </script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
   <style>
       body {
           background-color: ${isDarkTheme ? "#0d1117" : "#ffffff"};
@@ -4297,6 +4413,13 @@ This is a fully client-side application. Your content never leaves your browser 
                   console.warn('MathJax typeset failed:', err);
               });
           }
+          if (window.mermaid) {
+              try {
+                  window.mermaid.initialize({ startOnLoad: true, theme: '${isDarkTheme ? "dark" : "default"}' });
+              } catch (e) {
+                  console.warn('Mermaid initialization failed:', e);
+              }
+          }
       });
   </script>
 </body>
@@ -4332,24 +4455,15 @@ This is a fully client-side application. Your content never leaves your browser 
   function identifyGraphicElements(container) {
     const graphics = [];
 
-    // Query for images
-    container.querySelectorAll('img').forEach(el => {
-      graphics.push({ element: el, type: 'img' });
-    });
-
-    // Query for SVGs (Mermaid diagrams)
-    container.querySelectorAll('svg').forEach(el => {
-      graphics.push({ element: el, type: 'svg' });
-    });
-
-    // Query for pre elements (code blocks)
-    container.querySelectorAll('pre').forEach(el => {
-      graphics.push({ element: el, type: 'pre' });
-    });
-
-    // Query for tables
-    container.querySelectorAll('table').forEach(el => {
-      graphics.push({ element: el, type: 'table' });
+    // Query all targeting elements in precise DOM layout flow order
+    container.querySelectorAll('img, svg, pre, table').forEach(el => {
+      let type = 'img';
+      const tag = el.tagName.toLowerCase();
+      if (tag === 'svg') type = 'svg';
+      else if (tag === 'pre') type = 'pre';
+      else if (tag === 'table') type = 'table';
+      
+      graphics.push({ element: el, type: type });
     });
 
     return graphics;
@@ -4889,7 +5003,7 @@ This is a fully client-side application. Your content never leaves your browser 
       const canvas = await html2canvas(tempElement, {
         scale: 2,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         logging: false,
         windowWidth: 1000,
         windowHeight: tempElement.scrollHeight
@@ -5035,9 +5149,15 @@ This is a fully client-side application. Your content never leaves your browser 
       console.error('Share encoding failed:', e);
       return null;
     }
-    // mode=view  →  #share=<encoded>   (opens preview-only)
-    // mode=edit  →  #share=<encoded>&edit=1
-    const base = window.location.origin + window.location.pathname + '#share=' + encoded;
+    const isLocal = window.location.origin.includes('localhost') || 
+                    window.location.origin.startsWith('file://') || 
+                    typeof Neutralino !== 'undefined';
+                    
+    const baseUrl = isLocal 
+      ? 'https://markdownviewer.pages.dev/' 
+      : window.location.origin + window.location.pathname;
+
+    const base = baseUrl + '#share=' + encoded;
     return mode === 'edit' ? base + '&edit=1' : base;
   }
 
@@ -5209,8 +5329,7 @@ This is a fully client-side application. Your content never leaves your browser 
       const file = files[0];
       const isMarkdownFile =
         file.type === "text/markdown" ||
-        file.name.endsWith(".md") ||
-        file.name.endsWith(".markdown");
+        /\.(md|markdown)$/i.test(file.name || "");
       if (isMarkdownFile) {
         importMarkdownFile(file);
       } else {
@@ -5235,19 +5354,20 @@ This is a fully client-side application. Your content never leaves your browser 
       }
     }
     // Story 1.2: Only allow sync toggle shortcut when in split view
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "s") {
       e.preventDefault();
       if (currentViewMode === 'split') {
         toggleSyncScrolling();
       }
     }
-    // New tab
-    if ((e.ctrlKey || e.metaKey) && e.key === "t") {
+    const isDesktop = typeof Neutralino !== 'undefined';
+    // New tab (Ctrl+T on desktop, Alt+Shift+T on web/desktop)
+    if ((isDesktop && (e.ctrlKey || e.metaKey) && e.key === "t") || (e.altKey && e.shiftKey && e.key.toLowerCase() === "t")) {
       e.preventDefault();
       newTab();
     }
-    // Close tab
-    if ((e.ctrlKey || e.metaKey) && e.key === "w") {
+    // Close tab (Ctrl+W on desktop, Alt+Shift+W on web/desktop)
+    if ((isDesktop && (e.ctrlKey || e.metaKey) && e.key === "w") || (e.altKey && e.shiftKey && e.key.toLowerCase() === "w")) {
       e.preventDefault();
       closeTab(activeTabId);
     }

@@ -38,14 +38,14 @@ function openTutorial() {
 */
 function setTray() {
   // Tray menu is only available in window mode
-  if (NL_MODE != "window") {
+  if (typeof NL_MODE === "undefined" || NL_MODE != "window") {
     console.log("INFO: Tray menu is only available in the window mode.");
     return;
   }
 
   // Define tray menu items
   let tray = {
-    icon: "/resources/icons/trayIcon.png",
+    icon: "/resources/assets/icon.jpg",
     menuItems: [
       { id: "VERSION", text: "Get version" },
       { id: "SEP", text: "-" },
@@ -54,7 +54,11 @@ function setTray() {
   };
 
   // Set the tray menu
-  Neutralino.os.setTray(tray);
+  try {
+    Neutralino.os.setTray(tray);
+  } catch (e) {
+    console.warn("Failed to set system tray:", e);
+  }
 }
 
 /*
@@ -85,39 +89,40 @@ function onWindowClose() {
   Neutralino.app.exit();
 }
 
-// Initialize Neutralino
-Neutralino.init();
+// Initialize Neutralino if in native environment
+if (typeof Neutralino !== 'undefined') {
+  Neutralino.init();
 
-// Register event listeners
-Neutralino.events.on("trayMenuItemClicked", onTrayMenuItemClicked);
-Neutralino.events.on("windowClose", onWindowClose);
+  // Register event listeners
+  Neutralino.events.on("trayMenuItemClicked", onTrayMenuItemClicked);
+  Neutralino.events.on("windowClose", onWindowClose);
 
-// Conditional initialization: Set up system tray if not running on macOS
-if (NL_OS != "Darwin") {
-  // TODO: Fix https://github.com/neutralinojs/neutralinojs/issues/615
-  setTray();
+  // Conditional initialization: Set up system tray if not running on macOS
+  if (typeof NL_OS !== 'undefined' && NL_OS != "Darwin") {
+    // TODO: Fix https://github.com/neutralinojs/neutralinojs/issues/615
+    setTray();
+  }
 }
 
 // Open file passed as command-line argument (e.g. when double-clicking a .md file)
 (async function loadInitialFile() {
+  if (typeof Neutralino === 'undefined' || typeof NL_ARGS === 'undefined') return;
   const args = Array.isArray(NL_ARGS) ? NL_ARGS : (() => { try { return JSON.parse(NL_ARGS); } catch(e) { return []; } })();
   const filePath = args.find(a => typeof a === 'string' && /\.(md|markdown)$/i.test(a));
   if (!filePath) return;
 
   try {
     const content = await Neutralino.filesystem.readFile(filePath);
+    const fileName = filePath.split(/[/\\]/).pop().replace(/\.(md|markdown)$/i, '');
+    
+    window.NL_INITIAL_FILE_CONTENT = {
+      name: fileName,
+      content: content
+    };
 
-    function applyContent() {
-      const editor = document.getElementById('markdown-editor');
-      if (!editor) return;
-      editor.value = content;
-      editor.dispatchEvent(new Event('input'));
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', applyContent);
-    } else {
-      setTimeout(applyContent, 0);
+    // Callback hook in case script.js loaded first
+    if (window.NL_IMPORT_EXTERNAL_FILE) {
+      window.NL_IMPORT_EXTERNAL_FILE(content, fileName);
     }
   } catch (e) {
     console.warn('Could not open initial file:', e);

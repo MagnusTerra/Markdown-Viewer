@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
-  "applicationId": "js.neutralino.sample",
+  "applicationId": "com.markdownviewer.desktop",
   "version": "1.0.0",
   "defaultMode": "window",
   "port": 0,
@@ -13,7 +13,7 @@
     "enabled": true,
     "writeToLogFile": true
   },
-  "nativeAllowList": ["app.*", "os.*", "filesystem.readFile", "debug.log"],
+  "nativeAllowList": ["app.*", "os.*", "filesystem.*", "debug.log"],
   "globalVariables": {},
   "modes": {
     "window": {

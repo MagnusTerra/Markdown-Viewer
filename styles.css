@@ -3,6 +3,9 @@
   --editor-bg: #f6f8fa;
   --preview-bg: #ffffff; /* Preview background for light mode */
   --text-color: #24292e;
+  --text-secondary: #57606a;
+  --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  --color-danger-fg: #d73a49;
   --preview-text-color: #24292e; /* Text color for preview in light mode */
   --border-color: #e1e4e8;
   --header-bg: #f6f8fa;
@@ -21,6 +24,9 @@
   --editor-bg: #161b22;
   --preview-bg: #0d1117; /* Preview background for dark mode */
   --text-color: #c9d1d9;
+  --text-secondary: #8b949e;
+  --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  --color-danger-fg: #f85149;
   --preview-text-color: #c9d1d9; /* Text color for preview in dark mode */
   --border-color: #30363d;
   --header-bg: #161b22;
@@ -554,7 +560,16 @@ body {
 }
 
 .editor-highlight-layer::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+  height: 8px;
+}
+
+.editor-highlight-layer::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.editor-highlight-layer::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .find-highlight {
@@ -1141,6 +1156,26 @@ a:focus {
   .stats-container,
   .toolbar {
     display: none !important;
+  }
+
+  /* Expand touch target sizes to meet WCAG mobile guidelines */
+  .markdown-tool-btn {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 16px !important;
+  }
+  .markdown-format-toolbar {
+    height: 44px !important;
+  }
+  .tab-close-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+  .tab-menu-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
   }
 
   .mobile-menu {
@@ -2627,6 +2662,13 @@ a:focus {
 
 [dir="rtl"] body {
   direction: rtl;
+}
+
+[dir="rtl"] .editor-pane {
+  padding-left: 0px;
+  padding-right: 20px;
+  border-right: none;
+  border-left: 1px solid var(--border-color);
 }
 
 [dir="rtl"] #markdown-editor,

@@ -65,7 +65,7 @@ html = html.replace(/href="assets\//g, 'href="/assets/');
 html = html.replace(/href="styles\.css"/g, 'href="/styles.css"');
 /** Replace root script.js tag with neutralino.js + main.js + script.js under /js/ */
 html = html.replace(
-  /<script src="script\.js"><\/script>/,
+  /<script\s+src="script\.js"\s*><\/script>/i,
   '<script src="/js/neutralino.js"></script>\n    <script src="/js/main.js"></script>\n    <script src="/js/script.js"></script>',
 );
 

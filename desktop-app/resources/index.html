@@ -484,6 +484,51 @@
           </div>
         </div>
 
+        <!-- Share Modal -->
+        <div id="share-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="share-modal-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box reset-modal-box--wide modal-box">
+            <div class="modal-header">
+              <p id="share-modal-title" class="reset-modal-message">Share Document</p>
+              <button type="button" class="modal-close-btn" id="share-modal-close-icon" aria-label="Close share dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p class="share-modal-description">Choose how recipients can interact with this document.</p>
+              <div class="share-mode-cards">
+                <label class="share-mode-card" id="share-card-view" for="share-mode-view">
+                  <input type="radio" id="share-mode-view" name="share-mode" value="view" checked />
+                  <span class="share-card-icon"><i class="bi bi-eye"></i></span>
+                  <span class="share-card-body">
+                    <span class="share-card-title">View only</span>
+                    <span class="share-card-desc">Opens in preview mode. The editor is hidden.</span>
+                  </span>
+                  <span class="share-card-check"><i class="bi bi-check-lg"></i></span>
+                </label>
+                <label class="share-mode-card" id="share-card-edit" for="share-mode-edit">
+                  <input type="radio" id="share-mode-edit" name="share-mode" value="edit" />
+                  <span class="share-card-icon"><i class="bi bi-pencil-square"></i></span>
+                  <span class="share-card-body">
+                    <span class="share-card-title">Edit</span>
+                    <span class="share-card-desc">Opens in split editor + preview mode.</span>
+                  </span>
+                  <span class="share-card-check"><i class="bi bi-check-lg"></i></span>
+                </label>
+              </div>
+              <div class="share-url-row">
+                <input type="text" id="share-url-input" class="rename-modal-input share-url-input" readonly placeholder="Generating link…" aria-label="Share URL" />
+                <button class="reset-modal-btn share-copy-btn" id="share-copy-btn" title="Copy link">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+              </div>
+              <p class="share-modal-notice"><i class="bi bi-info-circle"></i> The entire document is encoded in the URL. No data is sent to any server.</p>
+            </div>
+            <div class="reset-modal-actions">
+              <button class="reset-modal-btn reset-modal-cancel" id="share-modal-close">Close</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Rename Modal -->
         <div id="rename-modal" class="reset-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="rename-modal-title" style="display:none;">
           <div class="reset-modal-box reset-modal-box--wide">

@@ -3,6 +3,9 @@
   --editor-bg: #f6f8fa;
   --preview-bg: #ffffff; /* Preview background for light mode */
   --text-color: #24292e;
+  --text-secondary: #57606a;
+  --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  --color-danger-fg: #d73a49;
   --preview-text-color: #24292e; /* Text color for preview in light mode */
   --border-color: #e1e4e8;
   --header-bg: #f6f8fa;
@@ -21,6 +24,9 @@
   --editor-bg: #161b22;
   --preview-bg: #0d1117; /* Preview background for dark mode */
   --text-color: #c9d1d9;
+  --text-secondary: #8b949e;
+  --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  --color-danger-fg: #f85149;
   --preview-text-color: #c9d1d9; /* Text color for preview in dark mode */
   --border-color: #30363d;
   --header-bg: #161b22;
@@ -554,7 +560,16 @@ body {
 }
 
 .editor-highlight-layer::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+  height: 8px;
+}
+
+.editor-highlight-layer::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.editor-highlight-layer::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .find-highlight {
@@ -1141,6 +1156,26 @@ a:focus {
   .stats-container,
   .toolbar {
     display: none !important;
+  }
+
+  /* Expand touch target sizes to meet WCAG mobile guidelines */
+  .markdown-tool-btn {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 16px !important;
+  }
+  .markdown-format-toolbar {
+    height: 44px !important;
+  }
+  .tab-close-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+  .tab-menu-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
   }
 
   .mobile-menu {
@@ -2629,6 +2664,13 @@ a:focus {
   direction: rtl;
 }
 
+[dir="rtl"] .editor-pane {
+  padding-left: 0px;
+  padding-right: 20px;
+  border-right: none;
+  border-left: 1px solid var(--border-color);
+}
+
 [dir="rtl"] #markdown-editor,
 [dir="rtl"] .markdown-body {
   direction: rtl;
@@ -2685,4 +2727,126 @@ a:focus {
 [dir="rtl"] .alert-preview .markdown-alert {
   border-left: 0;
   border-right: 0.25em solid currentColor;
+}
+
+/* ============================================
+   SHARE MODAL
+   ============================================ */
+
+.share-modal-description {
+  font-size: 13px;
+  color: var(--text-secondary, #57606a);
+  margin: 0;
+}
+
+.share-mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-mode-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.share-mode-card:hover {
+  border-color: var(--accent-color);
+  background: var(--button-hover);
+}
+
+.share-mode-card.is-selected {
+  border-color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+}
+
+.share-mode-card input[type="radio"] {
+  display: none;
+}
+
+.share-card-icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+  color: var(--text-secondary, #57606a);
+  flex-shrink: 0;
+}
+
+.share-mode-card.is-selected .share-card-icon {
+  color: var(--accent-color);
+}
+
+.share-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.share-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.share-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary, #57606a);
+}
+
+.share-card-check {
+  width: 18px;
+  text-align: center;
+  color: var(--accent-color);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.share-mode-card.is-selected .share-card-check {
+  opacity: 1;
+}
+
+.share-url-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.share-url-input {
+  flex: 1;
+  font-size: 12px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-secondary, #57606a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-copy-btn {
+  flex-shrink: 0;
+  padding: 6px 10px;
+}
+
+.share-copy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.share-modal-notice {
+  font-size: 11px;
+  color: var(--text-secondary, #57606a);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
