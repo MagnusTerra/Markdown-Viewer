@@ -5,6 +5,14 @@ Non-code commits (documentation, planning, README-only updates) are excluded.
 
 ---
 
+## v3.6.3
+
+- **Description:** Updated application version to 3.6.3 and rotated cache namespace. Adjusted the font sizes of import, export, and language selector options in the header dropdowns to match the stats-container. Unified the language selector formatting across web and mobile layouts by displaying full language names on all devices instead of country flags on mobile.
+- **Date:** 2026-05-27
+- **URL:** https://github.com/ThisIs-Developer/Markdown-Viewer/commit/v3.6.3
+
+---
+
 ## v3.6.2
 
 - **Description:** Systematically remediated and stabilized major performance bottlenecks across both web and desktop environments. Eliminated forced synchronous layout calculations (layout thrashing) in editor line gutter updates by implementing an in-memory `lineCache` Map inside `script.js` to store monospace text wrapping heights, dropping Total Blocking Time (TBT) during rapid typing from over 1500ms to under 15ms. Optimized initial payload weight by removing three heavy, unused dependencies (`html2pdf.bundle.min.js`, `pdfmake.min.js`, and `vfs_fonts.js`) from `index.html`, saving approximately 3.0 MB. Deferred the loading of all remaining external JavaScript libraries inside `<head>` to unblock HTML parsing, reducing First Contentful Paint (FCP) to under 0.6 seconds. Established early network preconnections and DNS prefetching for `cdnjs.cloudflare.com` and `cdn.jsdelivr.net`. Implemented an offline-first Progressive Web App (PWA) architecture by deploying `sw.js` (Service Worker) to cache local shell files and all external CDN stylesheets and scripts, yielding full offline functionality and instant Subsequent Time to Interactive (TTI) on mobile and desktop viewports. Refactored the Service Worker (sw.js) to employ a Stale-While-Revalidate (SWR) caching strategy for local application files (index.html, script.js, styles.css), serving assets instantly from the disk cache while asynchronously retrieving updates from the network. Maintained a strict Cache-First strategy for versioned stable third-party CDN libraries to avoid redundant network checks. Configured version-keyed cache namespaces (markdown-viewer-cache-v3.6.2) to support clean cache activation and stale cache invalidation in the background.

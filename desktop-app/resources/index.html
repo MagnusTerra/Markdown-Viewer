@@ -9,6 +9,23 @@
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
+    <!-- Canonical Link -->
+    <link rel="canonical" href="https://markdownviewer.pages.dev/">
+
+    <!-- Multilingual Hreflang Tags for Search Crawlers -->
+    <link rel="alternate" hreflang="x-default" href="https://markdownviewer.pages.dev/" />
+    <link rel="alternate" hreflang="en" href="https://markdownviewer.pages.dev/?lang=en" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://markdownviewer.pages.dev/?lang=zh" />
+    <link rel="alternate" hreflang="ja" href="https://markdownviewer.pages.dev/?lang=ja" />
+    <link rel="alternate" hreflang="ko" href="https://markdownviewer.pages.dev/?lang=ko" />
+
+    <!-- Asian Search Engine Verification Meta Tags -->
+    <meta name="baidu-site-verification" content="baidu_verification_code_placeholder" />
+    <meta name="naver-site-verification" content="naver_verification_code_placeholder" />
+
+    <!-- PWA Web Manifest -->
+    <link rel="manifest" href="manifest.json">
+
     <!-- Primary Meta Tags -->
     <meta name="title" content="Markdown Viewer">
     <meta name="description" content="Markdown Viewer is a powerful GitHub-style Markdown rendering tool with live preview, LaTeX math, Mermaid diagrams, syntax highlighting, dark mode, and export options to PDF, HTML, and MD—all fully client-side and secure.">
@@ -32,6 +49,31 @@
     <meta property="twitter:title" content="Markdown Viewer">
     <meta property="twitter:description" content="Markdown Viewer is a powerful GitHub-style Markdown rendering tool with live preview, LaTeX math, Mermaid diagrams, syntax highlighting, dark mode, and export options to PDF, HTML, and MD—all fully client-side and secure.">
     <meta property="twitter:image" content="https://markdownviewer.pages.dev/assets/icon.jpg">
+
+    <!-- JSON-LD Structured Data Schema for Search Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Markdown Viewer",
+      "url": "https://markdownviewer.pages.dev/",
+      "image": "https://markdownviewer.pages.dev/assets/icon.jpg",
+      "description": "A powerful GitHub-style Markdown rendering tool with live preview, LaTeX, Mermaid, syntax highlighting, and PDF export.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "All",
+      "browserRequirements": "Requires HTML5 compatible browser",
+      "author": {
+        "@type": "Organization",
+        "name": "ThisIs-Developer",
+        "url": "https://github.com/ThisIs-Developer"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0.00",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
 
     <title>Markdown Viewer</title>
     <link href="/assets/icon.jpg" rel="icon" type="image/jpg">
@@ -81,13 +123,13 @@
                     </a>
                     <div id="stats-container" class="stats-container d-flex align-items-center d-none d-md-flex">
                         <div class="stat-item me-3">
-                            <i class="bi bi-clock me-1"></i> <span id="reading-time">0</span> Min Read
+                            <i class="bi bi-clock me-1"></i> <span id="reading-time">0</span> <span id="lbl-min-read">Min Read</span>
                         </div>
                         <div class="stat-item me-3">
-                            <i class="bi bi-text-paragraph me-1"></i> <span id="word-count">0</span> Words
+                            <i class="bi bi-text-paragraph me-1"></i> <span id="word-count">0</span> <span id="lbl-words">Words</span>
                         </div>
                         <div class="stat-item">
-                            <i class="bi bi-fonts me-1"></i> <span id="char-count">0</span> Chars
+                            <i class="bi bi-fonts me-1"></i> <span id="char-count">0</span> <span id="lbl-chars">Chars</span>
                         </div>
                     </div>
                 </div>
@@ -139,6 +181,18 @@
                         <i class="bi bi-share"></i> <span class="btn-text">Share</span>
                     </button>
                     
+                    <div class="dropdown me-1">
+                        <button class="tool-button dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Switch Language">
+                            <i class="bi bi-translate"></i> <span id="current-lang-label" class="btn-text">English</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li><a class="dropdown-item lang-select-item active" href="#" data-lang="en">🇺🇸 English</a></li>
+                            <li><a class="dropdown-item lang-select-item" href="#" data-lang="zh">🇨🇳 简体中文</a></li>
+                            <li><a class="dropdown-item lang-select-item" href="#" data-lang="ja">🇯🇵 日本語</a></li>
+                            <li><a class="dropdown-item lang-select-item" href="#" data-lang="ko">🇰🇷 한국어</a></li>
+                        </ul>
+                    </div>
+
                     <button id="theme-toggle" class="tool-button" title="Toggle Dark Mode">
                         <i class="bi bi-moon"></i>
                     </button>
@@ -192,13 +246,13 @@
 
                         <div class="mobile-stats-container mb-3">
                             <div class="stat-item mb-2">
-                                <i class="bi bi-clock me-1"></i> <span id="mobile-reading-time">0</span> Min Read
+                                <i class="bi bi-clock me-1"></i> <span id="mobile-reading-time">0</span> <span id="lbl-mobile-min-read">Min Read</span>
                             </div>
                             <div class="stat-item mb-2">
-                                <i class="bi bi-text-paragraph me-1"></i> <span id="mobile-word-count">0</span> Words
+                                <i class="bi bi-text-paragraph me-1"></i> <span id="mobile-word-count">0</span> <span id="lbl-mobile-words">Words</span>
                             </div>
                             <div class="stat-item">
-                                <i class="bi bi-fonts me-1"></i> <span id="mobile-char-count">0</span> Chars
+                                <i class="bi bi-fonts me-1"></i> <span id="mobile-char-count">0</span> <span id="lbl-mobile-chars">Chars</span>
                             </div>
                         </div>
 
@@ -238,6 +292,17 @@
                             <button id="mobile-direction-toggle" class="mobile-menu-item" title="Toggle RTL/LTR">
                                 <i class="bi bi-text-right me-2"></i> Switch to RTL
                             </button>
+                            <div class="mobile-menu-item dropdown w-100 p-0 border-0">
+                                <button class="mobile-menu-item w-100 text-start dropdown-toggle" type="button" id="mobileLanguageDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="Switch Language">
+                                    <i class="bi bi-translate me-2"></i> Language: <span id="mobile-current-lang-label">English</span>
+                                </button>
+                                <ul class="dropdown-menu w-100" aria-labelledby="mobileLanguageDropdown">
+                                    <li><a class="dropdown-item lang-select-item active" href="#" data-lang="en">🇺🇸 English</a></li>
+                                    <li><a class="dropdown-item lang-select-item" href="#" data-lang="zh">🇨🇳 简体中文</a></li>
+                                    <li><a class="dropdown-item lang-select-item" href="#" data-lang="ja">🇯🇵 日本語</a></li>
+                                    <li><a class="dropdown-item lang-select-item" href="#" data-lang="ko">🇰🇷 한국어</a></li>
+                                </ul>
+                            </div>
                             <button id="mobile-theme-toggle" class="mobile-menu-item" title="Toggle Dark Mode">
                                 <i class="bi bi-moon me-2"></i> Dark Mode
                             </button>

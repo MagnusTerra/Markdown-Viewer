@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode State - Story 1.1
   let currentViewMode = 'split'; // 'editor', 'split', or 'preview'
-  const APP_VERSION = '3.6.2';
+  const APP_VERSION = '3.6.3';
   let activeModal = null;
   let lastFocusedElement = null;
   let isFindModalOpen = false;
@@ -5900,6 +5900,376 @@ This is a fully client-side application. Your content never leaves your browser 
       container.appendChild(toolbar);
     });
   }
+
+  // ==========================================================================
+  // Aegis SEO agency Multilingual & Internationalization (i18n) engine
+  // ==========================================================================
+  const I18N_DICTS = {
+    en: {
+      title: "Markdown Viewer",
+      syncOff: "Sync Off",
+      syncOn: "Sync On",
+      import: "Import",
+      importFile: "From files",
+      importGithub: "From GitHub",
+      export: "Export",
+      exportMd: "Markdown (.md)",
+      exportHtml: "HTML",
+      exportPdf: "PDF",
+      copy: "Copy",
+      copied: "Copied!",
+      share: "Share",
+      reset: "Reset",
+      editor: "Editor",
+      split: "Split",
+      preview: "Preview",
+      minRead: "Min Read",
+      words: "Words",
+      chars: "Chars",
+      switchRtl: "Switch to RTL",
+      switchLtr: "Switch to LTR",
+      darkMode: "Dark Mode",
+      lightMode: "Light Mode",
+      helpTitle: "Markdown Viewer Help",
+      aboutTitle: "About Markdown",
+      shareTitle: "Share Document",
+      renameTitle: "Rename file",
+      insertLink: "Insert link",
+      insertRef: "Insert reference",
+      insertImg: "Insert image",
+      insertTable: "Insert table",
+      findReplace: "Find & Replace",
+      placeholder: "Type your markdown here..."
+    },
+    zh: {
+      title: "Markdown 阅读器",
+      syncOff: "同步关闭",
+      syncOn: "同步开启",
+      import: "导入",
+      importFile: "本地文件导入",
+      importGithub: "从 GitHub 导入",
+      export: "导出",
+      exportMd: "导出 Markdown (.md)",
+      exportHtml: "导出 HTML",
+      exportPdf: "导出 PDF",
+      copy: "复制",
+      copied: "已复制!",
+      share: "分享",
+      reset: "重置",
+      editor: "编辑器",
+      split: "分栏预览",
+      preview: "纯预览",
+      minRead: "分钟阅读",
+      words: "字数",
+      chars: "字符数",
+      switchRtl: "切换为右至左布局",
+      switchLtr: "切换为左至右布局",
+      darkMode: "深色模式",
+      lightMode: "浅色模式",
+      helpTitle: "Markdown 阅读器帮助说明",
+      aboutTitle: "关于 Markdown 阅读器",
+      shareTitle: "分享当前文档",
+      renameTitle: "重命名文件",
+      insertLink: "插入超链接",
+      insertRef: "插入脚注引用",
+      insertImg: "插入图片",
+      insertTable: "插入表格",
+      findReplace: "查找与替换",
+      placeholder: "在此输入您的 Markdown 文本..."
+    },
+    ja: {
+      title: "Markdown ビューア",
+      syncOff: "同期オフ",
+      syncOn: "同期オン",
+      import: "インポート",
+      importFile: "ファイルから",
+      importGithub: "GitHub から",
+      export: "エクスポート",
+      exportMd: "Markdown (.md)",
+      exportHtml: "HTML",
+      exportPdf: "PDF",
+      copy: "コピー",
+      copied: "コピー完了!",
+      share: "共有",
+      reset: "リセット",
+      editor: "エディタ",
+      split: "分割表示",
+      preview: "プレビュー",
+      minRead: "分 読了",
+      words: "単語数",
+      chars: "文字数",
+      switchRtl: "RTL表示に切替",
+      switchLtr: "LTR表示に切替",
+      darkMode: "ダークモード",
+      lightMode: "ライトモード",
+      helpTitle: "Markdown ビューア ヘルプ",
+      aboutTitle: "Markdown について",
+      shareTitle: "ドキュメントの共有",
+      renameTitle: "ファイル名の変更",
+      insertLink: "リンクの挿入",
+      insertRef: "参照の挿入",
+      insertImg: "画像の挿入",
+      insertTable: "テーブルの挿入",
+      findReplace: "検索と置換",
+      placeholder: "ここにMarkdownを入力してください..."
+    },
+    ko: {
+      title: "마크다운 뷰어",
+      syncOff: "동기화 끄기",
+      syncOn: "동기화 켜기",
+      import: "가져오기",
+      importFile: "로컬 파일에서",
+      importGithub: "GitHub에서",
+      export: "내보내기",
+      exportMd: "마크다운 (.md)",
+      exportHtml: "HTML로 내보내기",
+      exportPdf: "PDF로 내보내기",
+      copy: "복사",
+      copied: "복사됨!",
+      share: "공유",
+      reset: "초기화",
+      editor: "편집기",
+      split: "분할 보기",
+      preview: "미리보기",
+      minRead: "분 읽기",
+      words: "단어 수",
+      chars: "글자 수",
+      switchRtl: "우측 정렬로 전환",
+      switchLtr: "좌측 정렬로 전환",
+      darkMode: "다크 모드",
+      lightMode: "라이트 모드",
+      helpTitle: "마크다운 뷰어 도움말",
+      aboutTitle: "마크다운 정보",
+      shareTitle: "문서 공유",
+      renameTitle: "파일 이름 바꾸기",
+      insertLink: "링크 삽입",
+      insertRef: "참조 삽입",
+      insertImg: "이미지 삽입",
+      insertTable: "표 삽입",
+      findReplace: "찾기 및 바꾸기",
+      placeholder: "여기에 마크다운 내용을 입력하세요..."
+    }
+  };
+
+  let activeLang = 'en';
+
+  function applyTranslations(lang) {
+    activeLang = lang;
+    document.documentElement.setAttribute('lang', lang === 'zh' ? 'zh-Hans' : lang);
+    const dict = I18N_DICTS[lang] || I18N_DICTS.en;
+
+    // Update main logo and header elements
+    const logoEl = document.querySelector('.app-header h1');
+    if (logoEl) logoEl.textContent = dict.title;
+
+    // Update dynamic current language labels in drop menus
+    const labelEl = document.getElementById('current-lang-label');
+    if (labelEl) {
+      const flags = { en: "🇺🇸 English", zh: "🇨🇳 简体中文", ja: "🇯🇵 日本語", ko: "🇰🇷 한국어" };
+      labelEl.textContent = flags[lang];
+    }
+    const mobileLabelEl = document.getElementById('mobile-current-lang-label');
+    if (mobileLabelEl) {
+      const flags = { en: "🇺🇸 English", zh: "🇨🇳 简体中文", ja: "🇯🇵 日本語", ko: "🇰🇷 한국어" };
+      mobileLabelEl.textContent = flags[lang];
+    }
+
+    // Translate buttons with text content
+    const toggleSyncEl = document.getElementById('toggle-sync');
+    if (toggleSyncEl) {
+      const isSyncActive = toggleSyncEl.classList.contains('sync-active');
+      const textSpan = toggleSyncEl.querySelector('.btn-text');
+      if (textSpan) textSpan.textContent = isSyncActive ? dict.syncOff : dict.syncOn;
+    }
+    const mobileToggleSyncEl = document.getElementById('mobile-toggle-sync');
+    if (mobileToggleSyncEl) {
+      const isSyncActive = mobileToggleSyncEl.classList.contains('sync-active');
+      mobileToggleSyncEl.innerHTML = `<i class="bi bi-link"></i> ${isSyncActive ? dict.syncOff : dict.syncOn}`;
+    }
+
+    // Import buttons
+    const importDropEl = document.getElementById('importDropdown');
+    if (importDropEl) {
+      const importText = importDropEl.querySelector('.btn-text');
+      if (importText) importText.textContent = dict.import;
+    }
+    const importFileEl = document.getElementById('import-from-file');
+    if (importFileEl) importFileEl.innerHTML = `<i class="bi bi-upload me-2"></i>${dict.importFile}`;
+    const importGithubEl = document.getElementById('import-from-github');
+    if (importGithubEl) importGithubEl.innerHTML = `<i class="bi bi-github me-2"></i>${dict.importGithub}`;
+
+    const mImportFileEl = document.getElementById('mobile-import-button');
+    if (mImportFileEl) mImportFileEl.innerHTML = `<i class="bi bi-upload me-2"></i>${dict.importFile}`;
+    const mImportGithubEl = document.getElementById('mobile-import-github-button');
+    if (mImportGithubEl) mImportGithubEl.innerHTML = `<i class="bi bi-github me-2"></i>${dict.importGithub}`;
+
+    // Export buttons
+    const exportDropEl = document.getElementById('exportDropdown');
+    if (exportDropEl) {
+      const exportText = exportDropEl.querySelector('.btn-text');
+      if (exportText) exportText.textContent = dict.export;
+    }
+    const exportMdEl = document.getElementById('export-md');
+    if (exportMdEl) exportMdEl.innerHTML = `<i class="bi bi-file-earmark-text me-2"></i>${dict.exportMd}`;
+    const exportHtmlEl = document.getElementById('export-html');
+    if (exportHtmlEl) exportHtmlEl.innerHTML = `<i class="bi bi-file-earmark-code me-2"></i>${dict.exportHtml}`;
+    const exportPdfEl = document.getElementById('export-pdf');
+    if (exportPdfEl) exportPdfEl.innerHTML = `<i class="bi bi-file-earmark-pdf me-2"></i>${dict.exportPdf}`;
+
+    const mExportMdEl = document.getElementById('mobile-export-md');
+    if (mExportMdEl) mExportMdEl.innerHTML = `<i class="bi bi-file-earmark-text me-2"></i>${dict.exportMd}`;
+    const mExportHtmlEl = document.getElementById('mobile-export-html');
+    if (mExportHtmlEl) mExportHtmlEl.innerHTML = `<i class="bi bi-file-earmark-code me-2"></i>${dict.exportHtml}`;
+    const mExportPdfEl = document.getElementById('mobile-export-pdf');
+    if (mExportPdfEl) mExportPdfEl.innerHTML = `<i class="bi bi-file-earmark-pdf me-2"></i>${dict.exportPdf}`;
+
+    // Copy / Share
+    if (copyMarkdownButton) {
+      const copyButtonText = copyMarkdownButton.querySelector('.btn-text');
+      if (copyButtonText) copyButtonText.textContent = dict.copy;
+    }
+    const mCopyBtn = document.getElementById('mobile-copy-markdown');
+    if (mCopyBtn) mCopyBtn.innerHTML = `<i class="bi bi-clipboard me-2"></i>${dict.copy}`;
+
+    if (shareButton) {
+      const shareButtonText = shareButton.querySelector('.btn-text');
+      if (shareButtonText) shareButtonText.textContent = dict.share;
+    }
+    const mShareBtn = document.getElementById('mobile-share-button');
+    if (mShareBtn) mShareBtn.innerHTML = `<i class="bi bi-share me-2"></i>${dict.share}`;
+
+    // Document Reset
+    const tabResetBtn = document.getElementById('tab-reset-btn');
+    if (tabResetBtn) tabResetBtn.innerHTML = `<i class="bi bi-arrow-counterclockwise"></i> ${dict.reset}`;
+    const mTabResetBtn = document.getElementById('mobile-tab-reset-btn');
+    if (mTabResetBtn) mTabResetBtn.innerHTML = `<i class="bi bi-arrow-counterclockwise"></i> ${dict.reset} all files`;
+
+    // View toggle buttons title tooltips
+    document.querySelectorAll('[data-view-mode="editor"]').forEach(b => b.title = dict.editor);
+    document.querySelectorAll('[data-view-mode="split"]').forEach(b => b.title = dict.split);
+    document.querySelectorAll('[data-view-mode="preview"]').forEach(b => b.title = dict.preview);
+    document.querySelectorAll('.mobile-view-mode-btn[data-mode="editor"] span').forEach(s => s.textContent = dict.editor);
+    document.querySelectorAll('.mobile-view-mode-btn[data-mode="split"] span').forEach(s => s.textContent = dict.split);
+    document.querySelectorAll('.mobile-view-mode-btn[data-mode="preview"] span').forEach(s => s.textContent = dict.preview);
+
+    // Direction Toggle
+    const dirToggle = document.getElementById('direction-toggle');
+    if (dirToggle) {
+      const isRtl = document.body.style.direction === 'rtl';
+      dirToggle.title = isRtl ? dict.switchLtr : dict.switchRtl;
+    }
+    const mDirToggle = document.getElementById('mobile-direction-toggle');
+    if (mDirToggle) {
+      const isRtl = document.body.style.direction === 'rtl';
+      mDirToggle.innerHTML = `<i class="bi bi-text-right me-2"></i> ${isRtl ? dict.switchLtr : dict.switchRtl}`;
+    }
+
+    // Modal Titles
+    const modalHelpTitle = document.getElementById('help-modal-title');
+    if (modalHelpTitle) modalHelpTitle.textContent = dict.helpTitle;
+    const modalAboutTitle = document.getElementById('about-modal-title');
+    if (modalAboutTitle) modalAboutTitle.textContent = dict.aboutTitle;
+    const modalShareTitle = document.getElementById('share-modal-title');
+    if (modalShareTitle) modalShareTitle.textContent = dict.shareTitle;
+    const modalRenameTitle = document.getElementById('rename-modal-title');
+    if (modalRenameTitle) modalRenameTitle.textContent = dict.renameTitle;
+    const modalLinkTitle = document.getElementById('link-modal-title');
+    if (modalLinkTitle) modalLinkTitle.textContent = dict.insertLink;
+    const modalRefTitle = document.getElementById('reference-modal-title');
+    if (modalRefTitle) modalRefTitle.textContent = dict.insertRef;
+    const modalImgTitle = document.getElementById('image-modal-title');
+    if (modalImgTitle) modalImgTitle.textContent = dict.insertImg;
+    const modalTableTitle = document.getElementById('table-modal-title');
+    if (modalTableTitle) modalTableTitle.textContent = dict.insertTable;
+    const modalFindTitle = document.getElementById('find-replace-title');
+    if (modalFindTitle) modalFindTitle.textContent = dict.findReplace;
+
+    // Theme titles
+    const mThemeToggle = document.getElementById('mobile-theme-toggle');
+    if (mThemeToggle) {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      mThemeToggle.innerHTML = `<i class="bi bi-${currentTheme === 'dark' ? 'sun' : 'moon'} me-2"></i> ${currentTheme === 'dark' ? dict.lightMode : dict.darkMode}`;
+    }
+
+    // Stats Labels
+    const minReadEl = document.getElementById('lbl-min-read');
+    if (minReadEl) minReadEl.textContent = dict.minRead;
+    const wordsEl = document.getElementById('lbl-words');
+    if (wordsEl) wordsEl.textContent = dict.words;
+    const charsEl = document.getElementById('lbl-chars');
+    if (charsEl) charsEl.textContent = dict.chars;
+
+    const mMinReadEl = document.getElementById('lbl-mobile-min-read');
+    if (mMinReadEl) mMinReadEl.textContent = dict.minRead;
+    const mWordsEl = document.getElementById('lbl-mobile-words');
+    if (mWordsEl) mWordsEl.textContent = dict.words;
+    const mCharsEl = document.getElementById('lbl-mobile-chars');
+    if (mCharsEl) mCharsEl.textContent = dict.chars;
+
+    // Placeholder
+    if (markdownEditor) {
+      markdownEditor.placeholder = dict.placeholder;
+    }
+
+    // Trigger state tracking update
+    updateDocumentStats();
+
+    // Mark current selected dropdown items as active
+    document.querySelectorAll('.lang-select-item').forEach(item => {
+      if (item.getAttribute('data-lang') === lang) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  function detectAndInitLanguage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    let lang = urlParams.get('lang');
+
+    if (!lang) {
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+      lang = hashParams.get('lang');
+    }
+
+    if (!lang) {
+      lang = localStorage.getItem('app-lang');
+    }
+
+    if (!lang && navigator.language) {
+      const navLang = navigator.language.toLowerCase();
+      if (navLang.startsWith('zh')) lang = 'zh';
+      else if (navLang.startsWith('ja')) lang = 'ja';
+      else if (navLang.startsWith('ko')) lang = 'ko';
+    }
+
+    if (!lang || !I18N_DICTS[lang]) {
+      lang = 'en';
+    }
+
+    applyTranslations(lang);
+  }
+
+  // Language selectors click event listeners
+  document.addEventListener('click', function(e) {
+    const item = e.target.closest('.lang-select-item');
+    if (item) {
+      e.preventDefault();
+      const lang = item.getAttribute('data-lang');
+      applyTranslations(lang);
+      localStorage.setItem('app-lang', lang);
+      
+      // Update browser search parameters dynamically without page reload
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', lang);
+      window.history.replaceState({}, '', url.toString());
+    }
+  });
+
+  // Run detection
+  detectAndInitLanguage();
 
   // Register Service Worker for offline capabilities
   if ('serviceWorker' in navigator) {
