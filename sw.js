@@ -1,4 +1,4 @@
-const CACHE_NAME = 'markdown-viewer-cache-v1';
+const CACHE_NAME = 'markdown-viewer-cache-v3.6.2';
 const ASSETS = [
   './',
   './index.html',
@@ -46,26 +46,47 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).then(response => {
-          // Cache newly requested resources if they are from safe origins
-          if (response && response.status === 200 && (
-            event.request.url.startsWith(self.location.origin) ||
-            event.request.url.includes('cdnjs.cloudflare.com') ||
-            event.request.url.includes('cdn.jsdelivr.net')
-          )) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return response;
+  const url = new URL(event.request.url);
+  const isLocal = url.origin === self.location.origin;
+
+  if (isLocal) {
+    // Stale-While-Revalidate strategy for local code assets
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(err => {
+            console.warn('Background fetch failed for:', event.request.url, err);
+          });
+          return cachedResponse || fetchPromise;
         });
       })
-  );
+    );
+  } else {
+    // Cache-First strategy for stable third-party CDN libraries
+    event.respondWith(
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          return fetch(event.request).then(response => {
+            if (response && response.status === 200 && (
+              event.request.url.includes('cdnjs.cloudflare.com') ||
+              event.request.url.includes('cdn.jsdelivr.net')
+            )) {
+              const responseToCache = response.clone();
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return response;
+          });
+        })
+    );
+  }
 });
