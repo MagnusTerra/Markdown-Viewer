@@ -3631,10 +3631,21 @@ This is a fully client-side application. Your content never leaves your browser 
     return Math.max(1, Math.round(contentHeight / lineHeight));
   }
 
+  const lineCache = new Map();
+  let lastEditorWidth = 0;
+
   function updateLineNumbers() {
     if (!lineNumbers || !markdownEditor) return;
     const lines = (markdownEditor.value || '').split('\n');
     const lineCount = Math.max(1, lines.length);
+
+    // Clear height cache if editor width has changed
+    const currentWidth = markdownEditor.clientWidth;
+    if (currentWidth !== lastEditorWidth) {
+      lineCache.clear();
+      lastEditorWidth = currentWidth;
+    }
+
     updateLineNumberGutter(lineCount);
     ensureLineNumberMeasure();
     const styles = window.getComputedStyle(markdownEditor);
@@ -3642,25 +3653,46 @@ This is a fully client-side application. Your content never leaves your browser 
     const paddingSum =
       (parseFloat(styles.paddingTop) || 0) +
       (parseFloat(styles.paddingBottom) || 0);
+
     const existingItems = lineNumbers.children;
-    if (existingItems.length !== lineCount) {
+    const existingCount = existingItems.length;
+
+    // Adjust the number of DOM elements in-place to avoid complete tear-down
+    if (existingCount < lineCount) {
       const fragment = document.createDocumentFragment();
-      lines.forEach(function(line, index) {
+      for (let i = existingCount; i < lineCount; i += 1) {
         const lineNumber = document.createElement('div');
         lineNumber.className = 'line-number';
-        lineNumber.textContent = index + 1;
-        const wrapCount = getWrappedLineCount(line, lineHeight, paddingSum);
-        lineNumber.style.height = `${wrapCount * lineHeight}px`;
         fragment.appendChild(lineNumber);
-      });
-      lineNumbers.textContent = '';
+      }
       lineNumbers.appendChild(fragment);
-    } else {
-      for (let i = 0; i < lineCount; i += 1) {
-        const wrapCount = getWrappedLineCount(lines[i], lineHeight, paddingSum);
-        existingItems[i].style.height = `${wrapCount * lineHeight}px`;
+    } else if (existingCount > lineCount) {
+      while (lineNumbers.children.length > lineCount) {
+        lineNumbers.removeChild(lineNumbers.lastChild);
       }
     }
+
+    // Update only the heights and numbers that changed, querying cache
+    for (let i = 0; i < lineCount; i += 1) {
+      const lineText = lines[i];
+      let wrapHeight = lineCache.get(lineText);
+      if (wrapHeight === undefined) {
+        const wrapCount = getWrappedLineCount(lineText, lineHeight, paddingSum);
+        wrapHeight = wrapCount * lineHeight;
+        lineCache.set(lineText, wrapHeight);
+      }
+
+      const item = existingItems[i];
+      const targetText = String(i + 1);
+      if (item.textContent !== targetText) {
+        item.textContent = targetText;
+      }
+      const targetHeight = `${wrapHeight}px`;
+      if (item.style.height !== targetHeight) {
+        item.style.height = targetHeight;
+      }
+    }
+
     syncLineNumberScroll();
   }
 
@@ -5866,6 +5898,17 @@ This is a fully client-side application. Your content never leaves your browser 
       toolbar.appendChild(btnPng);
       toolbar.appendChild(btnSvg);
       container.appendChild(toolbar);
+    });
+  }
+
+  // Register Service Worker for offline capabilities
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').then(function(registration) {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      }, function(err) {
+        console.log('ServiceWorker registration failed: ', err);
+      });
     });
   }
 });
