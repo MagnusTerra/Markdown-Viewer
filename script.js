@@ -4482,6 +4482,28 @@ This is a fully client-side application. Your content never leaves your browser 
     }
   }
 
+  function openHelpModal() {
+    if (helpModal) {
+      openAppModal(helpModal);
+    }
+  }
+
+  function openAboutModal() {
+    if (aboutModal) {
+      const aboutVersion = document.getElementById("about-version");
+      if (aboutVersion) {
+        aboutVersion.textContent = APP_VERSION;
+      }
+      openAppModal(aboutModal);
+    }
+  }
+
+  function openClearFormattingModal() {
+    if (clearFormattingModal) {
+      openAppModal(clearFormattingModal);
+    }
+  }
+
   function runMarkdownTool(action, button) {
     if (action === 'undo' || action === 'redo') {
       markdownEditor.focus();
@@ -6685,7 +6707,7 @@ This is a fully client-side application. Your content never leaves your browser 
     }
     const mobileLabelEl = document.getElementById('mobile-current-lang-label');
     if (mobileLabelEl) {
-      const flags = { en: "English", zh: "简体中文", ja: "日本語", ko: "한국어" };
+      const flags = { en: "us English", zh: "CN 简体中文", ja: "JP 日本語", ko: "KR 한국어" };
       mobileLabelEl.textContent = flags[lang];
     }
 
