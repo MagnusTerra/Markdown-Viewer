@@ -3921,19 +3921,16 @@ This is a fully client-side application. Your content never leaves your browser 
     const panel = document.getElementById('find-replace-modal');
     if (!handle || !panel) return;
 
-    handle.addEventListener('mousedown', (e) => {
-      if (isFrDocked) return;
-      if (e.target.closest('.find-replace-header-actions')) return;
+    const startDrag = (clientX, clientY) => {
       isPanelDragging = true;
-      dragOffset.x = e.clientX - panel.offsetLeft;
-      dragOffset.y = e.clientY - panel.offsetTop;
+      dragOffset.x = clientX - panel.offsetLeft;
+      dragOffset.y = clientY - panel.offsetTop;
       document.body.classList.add('resizing');
-    });
+    };
 
-    document.addEventListener('mousemove', (e) => {
-      if (!isPanelDragging || isFrDocked) return;
-      const x = e.clientX - dragOffset.x;
-      const y = e.clientY - dragOffset.y;
+    const moveDrag = (clientX, clientY) => {
+      const x = clientX - dragOffset.x;
+      const y = clientY - dragOffset.y;
       
       // Keep panel inside viewport boundaries
       const maxX = window.innerWidth - panel.offsetWidth;
@@ -3941,25 +3938,75 @@ This is a fully client-side application. Your content never leaves your browser 
       panel.style.left = `${Math.max(0, Math.min(maxX, x))}px`;
       panel.style.top = `${Math.max(0, Math.min(maxY, y))}px`;
       panel.style.right = 'auto';
-    });
+    };
 
-    document.addEventListener('mouseup', () => {
+    const stopDrag = () => {
       if (isPanelDragging) {
         isPanelDragging = false;
         document.body.classList.remove('resizing');
       }
+    };
+
+    // Mouse events
+    handle.addEventListener('mousedown', (e) => {
+      if (isFrDocked) return;
+      if (window.innerWidth < 768) return; // Do NOT allow dragging on mobile layouts
+      if (e.target.closest('.find-replace-header-actions')) return;
+      startDrag(e.clientX, e.clientY);
     });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isPanelDragging || isFrDocked) return;
+      moveDrag(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('mouseup', stopDrag);
+
+    // Touch events for tablets
+    handle.addEventListener('touchstart', (e) => {
+      if (isFrDocked) return;
+      if (window.innerWidth < 768) return; // Do NOT allow dragging on mobile layouts
+      if (e.target.closest('.find-replace-header-actions')) return;
+      if (e.touches && e.touches[0]) {
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!isPanelDragging || isFrDocked) return;
+      if (e.touches && e.touches[0]) {
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', stopDrag);
   }
 
   let frPreferredDocked = false;
 
   function toggleFrDockMode(forceFloat = false) {
+    // If forceFloat is an Event (e.g. from click listener directly), treat as false
+    if (forceFloat instanceof Event || (forceFloat && typeof forceFloat === 'object')) {
+      forceFloat = false;
+    }
+
     const panel = document.getElementById('find-replace-modal');
     const dockBtn = document.getElementById('find-replace-dock');
     const contentCont = document.querySelector('.content-container');
     if (!panel || !dockBtn || !contentCont) return;
 
-    if (window.innerWidth <= 768 || forceFloat) {
+    // Save active element focus and selection before DOM movement
+    const activeEl = document.activeElement;
+    const activeId = activeEl ? activeEl.id : null;
+    const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA');
+    let selStart = 0;
+    let selEnd = 0;
+    if (isInput && typeof activeEl.selectionStart === 'number') {
+      selStart = activeEl.selectionStart;
+      selEnd = activeEl.selectionEnd;
+    }
+
+    if (window.innerWidth < 1080 || forceFloat) {
       isFrDocked = false;
       panel.classList.remove('docked');
       if (panel.parentElement !== document.body) {
@@ -3977,6 +4024,17 @@ This is a fully client-side application. Your content never leaves your browser 
       
       panel.style.display = 'flex';
       applyPaneWidths();
+      
+      // Restore focus and selection
+      if (activeId) {
+        const el = document.getElementById(activeId);
+        if (el) {
+          el.focus();
+          if (isInput && typeof el.selectionStart === 'number') {
+            el.setSelectionRange(selStart, selEnd);
+          }
+        }
+      }
       return;
     }
 
@@ -4018,6 +4076,17 @@ This is a fully client-side application. Your content never leaves your browser 
     // Ensure display is flex and recalculate split panes
     panel.style.display = 'flex';
     applyPaneWidths();
+
+    // Restore focus and selection after layout change
+    if (activeId) {
+      const el = document.getElementById(activeId);
+      if (el) {
+        el.focus();
+        if (isInput && typeof el.selectionStart === 'number') {
+          el.setSelectionRange(selStart, selEnd);
+        }
+      }
+    }
   }
 
   function updateFindControls() {
@@ -4143,7 +4212,7 @@ This is a fully client-side application. Your content never leaves your browser 
     let wasDockedPref = localStorage.getItem('find-replace-docked') === 'true';
     
     // Force floating-only mode on mobile/tablet viewports
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth < 1080) {
       wasDockedPref = false;
     }
     
@@ -4383,7 +4452,7 @@ This is a fully client-side application. Your content never leaves your browser 
     // Dock toggle handler
     const dockBtn = document.getElementById('find-replace-dock');
     if (dockBtn) {
-      dockBtn.addEventListener('click', toggleFrDockMode);
+      dockBtn.addEventListener('click', () => toggleFrDockMode(false));
     }
 
     // Advanced Drawer Toggle
@@ -4619,7 +4688,7 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function startResize(e) {
-    if (window.innerWidth <= 768) return;
+    if (window.innerWidth < 1080) return;
     if (currentViewMode !== 'split') return;
     e.preventDefault();
     isResizing = true;
@@ -4628,7 +4697,7 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function startResizeTouch(e) {
-    if (window.innerWidth <= 768) return;
+    if (window.innerWidth < 1080) return;
     if (currentViewMode !== 'split') return;
     e.preventDefault();
     isResizing = true;
@@ -4675,7 +4744,7 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function applyPaneWidths() {
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth < 1080) {
       resetPaneWidths();
       return;
     }
@@ -4787,11 +4856,30 @@ This is a fully client-side application. Your content never leaves your browser 
 
   // Initialize resizer - Story 1.3
   initResizer();
+  function constrainFloatingPanelPosition() {
+    const panel = document.getElementById('find-replace-modal');
+    if (!panel || isFrDocked || panel.style.display === 'none') return;
+    if (window.innerWidth < 768) return; // Mobile layout forces fixed responsive positioning via CSS
+    
+    // Only adjust if the inline style has custom dragged coordinates
+    if (!panel.style.left || panel.style.left === 'auto') return;
+
+    const leftVal = parseFloat(panel.style.left) || 0;
+    const topVal = parseFloat(panel.style.top) || 0;
+    
+    const maxX = window.innerWidth - panel.offsetWidth;
+    const maxY = window.innerHeight - panel.offsetHeight;
+    
+    panel.style.left = `${Math.max(0, Math.min(maxX, leftVal))}px`;
+    panel.style.top = `${Math.max(0, Math.min(maxY, topVal))}px`;
+  }
+
   window.addEventListener('resize', () => {
     scheduleLineNumberUpdate();
-    if (window.innerWidth <= 768 && isFrDocked && isFindModalOpen) {
+    if (window.innerWidth < 1080 && isFrDocked && isFindModalOpen) {
       toggleFrDockMode(true);
     }
+    constrainFloatingPanelPosition();
   });
 
   // View Mode Button Event Listeners - Story 1.1

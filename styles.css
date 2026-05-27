@@ -3379,13 +3379,15 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
 }
 
 /* ========================================
-   MOBILE FIND PANEL RESPONSIVE FIXES
+   MOBILE & TABLET FIND PANEL RESPONSIVE FIXES
    ======================================== */
-@media (max-width: 768px) {
+@media (max-width: 1079px) {
   #find-replace-dock {
     display: none !important;
   }
-  
+}
+
+@media (max-width: 768px) {
   /* Prevent full screen expansion of floating panel on small mobile viewports */
   .find-replace-panel {
     width: calc(100% - 24px) !important;
