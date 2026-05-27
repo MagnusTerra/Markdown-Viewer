@@ -3710,35 +3710,306 @@ This is a fully client-side application. Your content never leaves your browser 
     lineNumbers.scrollTop = markdownEditor.scrollTop;
   }
 
-  function computeFindMatches(value, query) {
-    if (!query) return [];
-    const haystack = value.toLowerCase();
-    const needle = query.toLowerCase();
-    const matches = [];
-    let index = haystack.indexOf(needle);
-    while (index !== -1) {
-      matches.push({ start: index, end: index + needle.length });
-      index = haystack.indexOf(needle, index + needle.length);
+  // Class encapsulating Search & Replace Engine
+  class FindReplaceEngine {
+    constructor(editor) {
+      this.editor = editor;
+      this.history = { find: [], replace: [] };
+      this.activeMatches = [];
+      this.currentMatchIndex = -1;
     }
-    return matches;
+
+    buildASTScopeMap(text) {
+      if (typeof marked === 'undefined' || !marked.lexer) return [];
+      try {
+        const tokens = marked.lexer(text);
+        const scopeMap = [];
+        let currentIndex = 0;
+
+        const traverse = (tokenList) => {
+          for (const token of tokenList) {
+            const start = text.indexOf(token.raw, currentIndex);
+            if (start === -1) continue;
+            const end = start + token.raw.length;
+            currentIndex = end;
+
+            let scope = 'plain';
+            if (token.type === 'heading') scope = 'heading';
+            else if (token.type === 'code') {
+              if (token.lang === 'mermaid') scope = 'mermaid';
+              else scope = 'code';
+            } else if (token.type === 'paragraph' && token.raw.startsWith('$$') && token.raw.endsWith('$$')) {
+              scope = 'latex';
+            }
+
+            scopeMap.push({ start, end, scope, type: token.type });
+            if (token.tokens) traverse(token.tokens);
+          }
+        };
+
+        traverse(tokens);
+        return scopeMap;
+      } catch (e) {
+        console.warn("AST scope parsing failed:", e);
+        return [];
+      }
+    }
+
+    compileRegExp(query, isRegex, isCaseSensitive, isWholeWord) {
+      if (!query) return null;
+      let pattern = isRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (isWholeWord) {
+        pattern = `\\b${pattern}\\b`;
+      }
+      const flags = isCaseSensitive ? 'gd' : 'gid';
+      return new RegExp(pattern, flags);
+    }
+
+    executeSearch(options) {
+      const { query, isRegex, isCaseSensitive, isWholeWord, scopeFilter, findInSelection } = options;
+      const fullText = this.editor.value || '';
+      
+      let searchRange = { start: 0, end: fullText.length };
+      if (findInSelection) {
+        searchRange.start = this.editor.selectionStart;
+        searchRange.end = this.editor.selectionEnd;
+      }
+
+      let regex;
+      try {
+        regex = this.compileRegExp(query, isRegex, isCaseSensitive, isWholeWord);
+      } catch (err) {
+        throw new Error(err.message);
+      }
+
+      if (!regex) {
+        this.activeMatches = [];
+        this.currentMatchIndex = -1;
+        return this.activeMatches;
+      }
+
+      const rawMatches = [];
+      let match;
+      
+      while ((match = regex.exec(fullText)) !== null) {
+        if (match.index >= searchRange.end) break;
+        if (match.index >= searchRange.start) {
+          rawMatches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            value: match[0],
+            groups: match.groups || null,
+            matchArray: match
+          });
+        }
+        if (regex.lastIndex === match.index) {
+          regex.lastIndex++;
+        }
+      }
+
+      if (scopeFilter && scopeFilter !== 'entire') {
+        const scopeMap = this.buildASTScopeMap(fullText);
+        this.activeMatches = rawMatches.filter(m => {
+          const matchingScope = scopeMap.find(s => m.start >= s.start && m.end <= s.end);
+          return matchingScope && matchingScope.scope === scopeFilter;
+        });
+      } else {
+        this.activeMatches = rawMatches;
+      }
+
+      this.currentMatchIndex = this.activeMatches.length > 0 ? 0 : -1;
+      this.addHistory('find', query);
+      return this.activeMatches;
+    }
+
+    preserveCase(source, replacement) {
+      if (source === source.toUpperCase()) {
+        return replacement.toUpperCase();
+      }
+      if (source === source.toLowerCase()) {
+        return replacement.toLowerCase();
+      }
+      if (source[0] === source[0].toUpperCase() && source.slice(1) === source.slice(1).toLowerCase()) {
+        return replacement[0].toUpperCase() + replacement.slice(1).toLowerCase();
+      }
+      return replacement;
+    }
+
+    applyCaptureGroups(match, replacementTemplate) {
+      if (!match.matchArray) return replacementTemplate;
+      let result = replacementTemplate;
+      
+      result = result.replace(/\$(\d+)/g, (m, number) => {
+        const idx = parseInt(number, 10);
+        return match.matchArray[idx] !== undefined ? match.matchArray[idx] : m;
+      });
+
+      if (match.groups) {
+        result = result.replace(/\$<([^>]+)>/g, (m, name) => {
+          return match.groups[name] !== undefined ? match.groups[name] : m;
+        });
+      }
+
+      return result;
+    }
+
+    executeReplace(match, replacementTemplate, options) {
+      const { preserveCase, isRegex } = options;
+      const text = this.editor.value;
+
+      let finalReplacement = replacementTemplate;
+      if (isRegex) {
+        finalReplacement = this.applyCaptureGroups(match, finalReplacement);
+      }
+      if (preserveCase) {
+        finalReplacement = this.preserveCase(match.value, finalReplacement);
+      }
+
+      const before = text.slice(0, match.start);
+      const after = text.slice(match.end);
+      this.editor.value = before + finalReplacement + after;
+      this.editor.dispatchEvent(new Event('input', { bubbles: true }));
+
+      this.addHistory('replace', replacementTemplate);
+      return finalReplacement.length - match.value.length;
+    }
+
+    addHistory(type, query) {
+      if (!query) return;
+      const list = this.history[type];
+      const index = list.indexOf(query);
+      if (index !== -1) {
+        list.splice(index, 1);
+      }
+      list.unshift(query);
+      if (list.length > 10) {
+        list.pop();
+      }
+    }
+  }
+
+  // Verification helper for rich text blocks
+  function validateBlockSyntax(originalBlockText, newBlockText, scope) {
+    if (scope === 'latex') {
+      const origDisplay = (originalBlockText.match(/\$\$/g) || []).length;
+      const newDisplay = (newBlockText.match(/\$\$/g) || []).length;
+      const origInline = (originalBlockText.match(/[^\$]\$[^\$]/g) || []).length;
+      const newInline = (newBlockText.match(/[^\$]\$[^\$]/g) || []).length;
+
+      if (origDisplay !== newDisplay || origInline !== newInline) {
+        return { valid: false, reason: "LaTeX math block delimiters are unbalanced." };
+      }
+    }
+
+    if (scope === 'mermaid') {
+      const diagramTypePattern = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram-v2|erDiagram|gantt|pie|quadrantChart|c4Context|mindmap|timeline|zenuml)/i;
+      if (!diagramTypePattern.test(newBlockText.trim())) {
+        return { valid: false, reason: "Missing diagram type definition (e.g. flowchart TD)." };
+      }
+    }
+    return { valid: true };
+  }
+
+  // Global Engine Instance
+  let frEngine = null;
+  let isFrDocked = false;
+  let dragOffset = { x: 0, y: 0 };
+  let isPanelDragging = false;
+
+  function initFindReplacePanelDrag() {
+    const handle = document.getElementById('find-replace-drag-handle');
+    const panel = document.getElementById('find-replace-modal');
+    if (!handle || !panel) return;
+
+    handle.addEventListener('mousedown', (e) => {
+      if (isFrDocked) return;
+      if (e.target.closest('.find-replace-header-actions')) return;
+      isPanelDragging = true;
+      dragOffset.x = e.clientX - panel.offsetLeft;
+      dragOffset.y = e.clientY - panel.offsetTop;
+      document.body.classList.add('resizing');
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isPanelDragging || isFrDocked) return;
+      const x = e.clientX - dragOffset.x;
+      const y = e.clientY - dragOffset.y;
+      
+      // Keep panel inside viewport boundaries
+      const maxX = window.innerWidth - panel.offsetWidth;
+      const maxY = window.innerHeight - panel.offsetHeight;
+      panel.style.left = `${Math.max(0, Math.min(maxX, x))}px`;
+      panel.style.top = `${Math.max(0, Math.min(maxY, y))}px`;
+      panel.style.right = 'auto';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isPanelDragging) {
+        isPanelDragging = false;
+        document.body.classList.remove('resizing');
+      }
+    });
+  }
+
+  function toggleFrDockMode() {
+    const panel = document.getElementById('find-replace-modal');
+    const dockBtn = document.getElementById('find-replace-dock');
+    const editorWrapper = document.querySelector('.editor-dock-wrapper') || document.querySelector('.content-container');
+    if (!panel || !dockBtn || !editorWrapper) return;
+
+    isFrDocked = !isFrDocked;
+    if (isFrDocked) {
+      panel.classList.add('docked');
+      panel.style.left = 'auto';
+      panel.style.top = 'auto';
+      panel.style.right = 'auto';
+      // Append panel to dock container
+      editorWrapper.appendChild(panel);
+      dockBtn.innerHTML = '<i class="bi bi-window"></i>';
+      dockBtn.title = "Toggle Floating Mode";
+    } else {
+      panel.classList.remove('docked');
+      // Reset position and float on body
+      document.body.appendChild(panel);
+      panel.style.top = '100px';
+      panel.style.right = '20px';
+      panel.style.left = 'auto';
+      dockBtn.innerHTML = '<i class="bi bi-layout-sidebar-reverse"></i>';
+      dockBtn.title = "Toggle Dock Mode";
+    }
   }
 
   function updateFindControls() {
-    if (!findReplaceCount) return;
     const total = findMatches.length;
     const current = total && activeFindIndex >= 0 ? activeFindIndex + 1 : 0;
-    findReplaceCount.textContent = current + ' of ' + total + ' matches';
+    
+    const countSpan = document.getElementById('find-replace-count');
+    if (countSpan) {
+      countSpan.textContent = `${current} of ${total} matches`;
+    }
+
+    const prevBtn = document.getElementById('find-prev');
+    const nextBtn = document.getElementById('find-next');
+    const replaceCurrentBtn = document.getElementById('find-replace-current');
+    const replaceAllBtn = document.getElementById('find-replace-all');
+
     const hasMatches = total > 0;
     const hasQuery = !!(findReplaceInput && findReplaceInput.value);
-    if (findReplacePrev) findReplacePrev.disabled = !hasMatches;
-    if (findReplaceNext) findReplaceNext.disabled = !hasMatches;
-    if (findReplaceCurrent) findReplaceCurrent.disabled = !hasMatches;
-    if (findReplaceAll) findReplaceAll.disabled = !hasQuery || !hasMatches;
+
+    if (prevBtn) prevBtn.disabled = !hasMatches;
+    if (nextBtn) nextBtn.disabled = !hasMatches;
+    if (replaceCurrentBtn) replaceCurrentBtn.disabled = !hasMatches;
+    if (replaceAllBtn) replaceAllBtn.disabled = !hasQuery || !hasMatches;
   }
 
   function refreshFindMatches(options) {
     const opts = options || {};
     const query = findReplaceInput ? findReplaceInput.value : '';
+    const errorBox = document.getElementById('find-replace-error');
+    const errorMsg = document.getElementById('regex-error-msg');
+
+    if (errorBox) errorBox.style.display = 'none';
+
     if (!isFindModalOpen || !query) {
       findMatches = [];
       activeFindIndex = -1;
@@ -3746,7 +4017,31 @@ This is a fully client-side application. Your content never leaves your browser 
       updateFindHighlights();
       return;
     }
-    findMatches = computeFindMatches(markdownEditor.value, query);
+
+    const isRegex = document.getElementById('find-regex').classList.contains('active');
+    const isCaseSensitive = document.getElementById('find-case').classList.contains('active');
+    const isWholeWord = document.getElementById('find-word').classList.contains('active');
+    const scopeFilter = document.getElementById('find-replace-scope').value;
+    const findInSelection = document.getElementById('find-sel').classList.contains('active');
+
+    try {
+      findMatches = frEngine.executeSearch({
+        query,
+        isRegex,
+        isCaseSensitive,
+        isWholeWord,
+        scopeFilter,
+        findInSelection
+      });
+    } catch (err) {
+      findMatches = [];
+      activeFindIndex = -1;
+      if (errorBox && errorMsg) {
+        errorMsg.textContent = err.message;
+        errorBox.style.display = 'block';
+      }
+    }
+
     if (opts.resetIndex || query !== lastFindQuery) {
       activeFindIndex = findMatches.length ? 0 : -1;
     } else if (activeFindIndex >= findMatches.length) {
@@ -3755,6 +4050,7 @@ This is a fully client-side application. Your content never leaves your browser 
     lastFindQuery = query;
     updateFindControls();
     updateFindHighlights();
+    updateHistoryDropdowns();
   }
 
   function selectActiveMatch() {
@@ -3762,6 +4058,17 @@ This is a fully client-side application. Your content never leaves your browser 
     const match = findMatches[activeFindIndex];
     markdownEditor.focus();
     markdownEditor.setSelectionRange(match.start, match.end);
+    
+    // Auto-scroll logic if editor cursor is near find-replace panel
+    requestAnimationFrame(() => {
+      const panel = document.getElementById('find-replace-modal');
+      if (!isFrDocked && panel && panel.style.display !== 'none') {
+        const panelRect = panel.getBoundingClientRect();
+        // Check if selection coords intersect
+        // Simplification: if panel is right-aligned, push editor view left if needed,
+        // or just let native setSelectionRange scroll to cursor naturally.
+      }
+    });
   }
 
   function cycleFindMatch(direction) {
@@ -3775,16 +4082,24 @@ This is a fully client-side application. Your content never leaves your browser 
 
   function openFindReplaceModal() {
     if (!findReplaceModal || !findReplaceInput) return;
+    
+    if (!frEngine) {
+      frEngine = new FindReplaceEngine(markdownEditor);
+    }
+
     isFindModalOpen = true;
     const selected = markdownEditor.value.slice(markdownEditor.selectionStart, markdownEditor.selectionEnd);
-    if (selected) {
+    if (selected && selected.length < 100) {
       findReplaceInput.value = selected;
     }
-    openAppModal(findReplaceModal, { focusTarget: findReplaceInput, onClose: closeFindReplaceModal });
+
+    findReplaceModal.style.display = 'flex';
+    
     requestAnimationFrame(function() {
       findReplaceInput.focus();
       findReplaceInput.select();
     });
+    
     refreshFindMatches({ resetIndex: true });
     if (findMatches.length) {
       selectActiveMatch();
@@ -3793,7 +4108,14 @@ This is a fully client-side application. Your content never leaves your browser 
 
   function closeFindReplaceModal() {
     isFindModalOpen = false;
-    closeAppModal(findReplaceModal);
+    const panel = document.getElementById('find-replace-modal');
+    if (panel) {
+      panel.style.display = 'none';
+      if (isFrDocked) {
+        // Undock and return to body
+        toggleFrDockMode();
+      }
+    }
     findMatches = [];
     activeFindIndex = -1;
     updateFindControls();
@@ -3801,10 +4123,25 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function replaceCurrentMatch() {
-    if (!findMatches.length) return;
+    if (!findMatches.length || activeFindIndex < 0) return;
     const replacement = findReplaceWith ? findReplaceWith.value : '';
     const match = findMatches[activeFindIndex];
-    replaceEditorRange(match.start, match.end, replacement, match.start, match.start + replacement.length);
+
+    const preserveCase = document.getElementById('replace-preserve-case').classList.contains('active');
+    const isRegex = document.getElementById('find-regex').classList.contains('active');
+
+    // Syntax validation
+    const scopeFilter = document.getElementById('find-replace-scope').value;
+    if (scopeFilter === 'latex' || scopeFilter === 'mermaid') {
+      const check = validateBlockSyntax(match.value, replacement, scopeFilter);
+      if (!check.valid) {
+        alert(`Blocked replacement: ${check.reason}`);
+        return;
+      }
+    }
+
+    frEngine.executeReplace(match, replacement, { preserveCase, isRegex });
+    
     refreshFindMatches();
     if (findMatches.length) {
       activeFindIndex = Math.min(activeFindIndex, findMatches.length - 1);
@@ -3813,70 +4150,242 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function replaceAllMatches() {
+    if (!findMatches.length) return;
+    
     const query = findReplaceInput ? findReplaceInput.value : '';
-    if (!query) return;
     const replacement = findReplaceWith ? findReplaceWith.value : '';
-    const regex = new RegExp(escapeRegExp(query), 'gi');
-    markdownEditor.value = markdownEditor.value.replace(regex, () => replacement);
-    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+    const showDiff = document.getElementById('find-replace-diff-toggle').checked;
+
+    if (showDiff) {
+      renderDiffPreview();
+      return;
+    }
+
+    executeBulkReplace();
+  }
+
+  function executeBulkReplace() {
+    const replacement = findReplaceWith ? findReplaceWith.value : '';
+    const preserveCase = document.getElementById('replace-preserve-case').classList.contains('active');
+    const isRegex = document.getElementById('find-regex').classList.contains('active');
+    
+    // Reverse sorting to replace from bottom up
+    const matchesCopy = [...findMatches];
+    matchesCopy.sort((a, b) => b.start - a.start);
+
+    for (const match of matchesCopy) {
+      frEngine.executeReplace(match, replacement, { preserveCase, isRegex });
+    }
+
     refreshFindMatches({ resetIndex: true });
     if (findMatches.length) {
       selectActiveMatch();
     }
   }
 
-  function openClearFormattingModal() {
-    if (!clearFormattingModal) return;
-    openAppModal(clearFormattingModal, { focusTarget: clearFormattingConfirm || clearFormattingCancel });
+  function renderDiffPreview() {
+    const container = document.getElementById('find-replace-diff-container');
+    const modal = document.getElementById('find-replace-diff-modal');
+    if (!container || !modal) return;
+
+    const replacement = findReplaceWith ? findReplaceWith.value : '';
+    const preserveCase = document.getElementById('replace-preserve-case').classList.contains('active');
+    const isRegex = document.getElementById('find-regex').classList.contains('active');
+
+    const lines = markdownEditor.value.split('\n');
+    const matchesCopy = [...findMatches];
+    matchesCopy.sort((a, b) => b.start - a.start);
+
+    // Draft the replaced value in memory
+    let draftValue = markdownEditor.value;
+    for (const match of matchesCopy) {
+      let finalRepl = replacement;
+      if (isRegex) {
+        finalRepl = frEngine.applyCaptureGroups(match, finalRepl);
+      }
+      if (preserveCase) {
+        finalRepl = frEngine.preserveCase(match.value, finalRepl);
+      }
+      draftValue = draftValue.slice(0, match.start) + finalRepl + draftValue.slice(match.end);
+    }
+
+    const draftLines = draftValue.split('\n');
+
+    container.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    const maxLines = Math.max(lines.length, draftLines.length);
+    for (let i = 0; i < maxLines; i++) {
+      const origLine = lines[i] !== undefined ? lines[i] : null;
+      const newLine = draftLines[i] !== undefined ? draftLines[i] : null;
+
+      if (origLine !== newLine) {
+        if (origLine !== null) {
+          const delLine = document.createElement('div');
+          delLine.className = 'diff-line deletion';
+          delLine.innerHTML = `<span class="diff-line-num">${i + 1}</span><span class="diff-line-content">- ${escapeHtml(origLine)}</span>`;
+          fragment.appendChild(delLine);
+        }
+        if (newLine !== null) {
+          const addLine = document.createElement('div');
+          addLine.className = 'diff-line addition';
+          addLine.innerHTML = `<span class="diff-line-num">${i + 1}</span><span class="diff-line-content">+ ${escapeHtml(newLine)}</span>`;
+          fragment.appendChild(addLine);
+        }
+      } else if (origLine !== null) {
+        // Show context for matching lines to prevent giant blank diff spaces
+        // Show context only if it surrounds a modified line
+        const hasDiffNearby = Array.from({length: 5}, (_, idx) => i - 2 + idx)
+          .some(lineIdx => lines[lineIdx] !== undefined && draftLines[lineIdx] !== undefined && lines[lineIdx] !== draftLines[lineIdx]);
+        
+        if (hasDiffNearby) {
+          const ctxLine = document.createElement('div');
+          ctxLine.className = 'diff-line context';
+          ctxLine.innerHTML = `<span class="diff-line-num">${i + 1}</span><span class="diff-line-content">  ${escapeHtml(origLine)}</span>`;
+          fragment.appendChild(ctxLine);
+        }
+      }
+    }
+
+    container.appendChild(fragment);
+    openAppModal(modal, {
+      focusTarget: document.getElementById('find-replace-diff-confirm'),
+      onClose: () => closeAppModal(modal)
+    });
   }
 
-  function applyClearFormatting() {
-    const stripped = stripBasicMarkdown(markdownEditor.value);
-    replaceEditorRange(0, markdownEditor.value.length, stripped, 0, 0);
-  }
+  function updateHistoryDropdowns() {
+    const select = document.getElementById('find-replace-history');
+    if (!select || !frEngine) return;
 
-  function openHelpModal() {
-    if (!helpModal) return;
-    openAppModal(helpModal, { focusTarget: helpModalClose || helpModalCloseIcon });
-  }
-
-  function openAboutModal() {
-    if (!aboutModal) return;
-    openAppModal(aboutModal, { focusTarget: aboutModalClose || aboutModalCloseIcon });
+    // Preserve the first option
+    select.innerHTML = '<option value="">Recent queries...</option>';
+    
+    frEngine.history.find.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q;
+      opt.textContent = q;
+      select.appendChild(opt);
+    });
   }
 
   function initFindReplaceModal() {
-    if (!findReplaceModal || !findReplaceInput) return;
-    findReplaceInput.addEventListener('input', function() {
-      refreshFindMatches({ resetIndex: true });
-    });
-    findReplaceInput.addEventListener('keydown', function(event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        cycleFindMatch(event.shiftKey ? -1 : 1);
+    const modal = document.getElementById('find-replace-modal');
+    if (!modal) return;
+
+    initFindReplacePanelDrag();
+
+    // Toggle options
+    const toggleButtons = ['find-case', 'find-word', 'find-regex', 'find-sel', 'replace-preserve-case', 'find-wrap'];
+    toggleButtons.forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const isActive = btn.classList.contains('active');
+          if (isActive) {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-pressed', 'false');
+          } else {
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+          }
+          refreshFindMatches({ resetIndex: true });
+        });
       }
     });
+
+    // History select handler
+    const historySelect = document.getElementById('find-replace-history');
+    if (historySelect) {
+      historySelect.addEventListener('change', () => {
+        if (historySelect.value) {
+          findReplaceInput.value = historySelect.value;
+          refreshFindMatches({ resetIndex: true });
+        }
+      });
+    }
+
+    // Scope select handler
+    const scopeSelect = document.getElementById('find-replace-scope');
+    if (scopeSelect) {
+      scopeSelect.addEventListener('change', () => {
+        refreshFindMatches({ resetIndex: true });
+      });
+    }
+
+    // Dock toggle handler
+    const dockBtn = document.getElementById('find-replace-dock');
+    if (dockBtn) {
+      dockBtn.addEventListener('click', toggleFrDockMode);
+    }
+
+    // Advanced Drawer Toggle
+    const drawerToggle = document.getElementById('fr-drawer-toggle');
+    const drawerContent = document.getElementById('fr-drawer-content');
+    if (drawerToggle && drawerContent) {
+      drawerToggle.addEventListener('click', () => {
+        const isOpen = drawerContent.style.display === 'flex';
+        if (isOpen) {
+          drawerContent.style.display = 'none';
+          drawerToggle.setAttribute('aria-expanded', 'false');
+          drawerToggle.innerHTML = '<i class="bi bi-chevron-right me-1"></i> Advanced Options';
+        } else {
+          drawerContent.style.display = 'flex';
+          drawerToggle.setAttribute('aria-expanded', 'true');
+          drawerToggle.innerHTML = '<i class="bi bi-chevron-down me-1"></i> Advanced Options';
+        }
+      });
+    }
+
+    // Inputs
+    if (findReplaceInput) {
+      findReplaceInput.addEventListener('input', function() {
+        refreshFindMatches({ resetIndex: true });
+      });
+      findReplaceInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          cycleFindMatch(event.shiftKey ? -1 : 1);
+        }
+      });
+    }
+
     if (findReplaceWith) {
       findReplaceWith.addEventListener('input', updateFindControls);
     }
-    if (findReplacePrev) {
-      findReplacePrev.addEventListener('click', function() { cycleFindMatch(-1); });
+
+    // Navigation buttons
+    const prevBtn = document.getElementById('find-prev');
+    const nextBtn = document.getElementById('find-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => cycleFindMatch(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => cycleFindMatch(1));
+
+    // Action buttons
+    const currentBtn = document.getElementById('find-replace-current');
+    const allBtn = document.getElementById('find-replace-all');
+    if (currentBtn) currentBtn.addEventListener('click', replaceCurrentMatch);
+    if (allBtn) allBtn.addEventListener('click', replaceAllMatches);
+
+    // Close buttons
+    const closeBtn = document.getElementById('find-replace-close');
+    const closeIcon = document.getElementById('find-replace-close-icon');
+    if (closeBtn) closeBtn.addEventListener('click', closeFindReplaceModal);
+    if (closeIcon) closeIcon.addEventListener('click', closeFindReplaceModal);
+
+    // Diff modal confirmation triggers
+    const diffConfirmBtn = document.getElementById('find-replace-diff-confirm');
+    const diffCancelBtn = document.getElementById('find-replace-diff-cancel');
+    const diffCloseIcon = document.getElementById('find-replace-diff-close-icon');
+    const diffModal = document.getElementById('find-replace-diff-modal');
+
+    if (diffConfirmBtn) {
+      diffConfirmBtn.addEventListener('click', () => {
+        executeBulkReplace();
+        closeAppModal(diffModal);
+      });
     }
-    if (findReplaceNext) {
-      findReplaceNext.addEventListener('click', function() { cycleFindMatch(1); });
-    }
-    if (findReplaceCurrent) {
-      findReplaceCurrent.addEventListener('click', replaceCurrentMatch);
-    }
-    if (findReplaceAll) {
-      findReplaceAll.addEventListener('click', replaceAllMatches);
-    }
-    if (findReplaceClose) {
-      findReplaceClose.addEventListener('click', closeFindReplaceModal);
-    }
-    if (findReplaceCloseIcon) {
-      findReplaceCloseIcon.addEventListener('click', closeFindReplaceModal);
-    }
+    if (diffCancelBtn) diffCancelBtn.addEventListener('click', () => closeAppModal(diffModal));
+    if (diffCloseIcon) diffCloseIcon.addEventListener('click', () => closeAppModal(diffModal));
   }
 
   function initAppModals() {

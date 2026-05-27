@@ -406,43 +406,121 @@
           </div>
         </div>
 
-        <!-- Find & Replace Modal -->
-        <div id="find-replace-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="find-replace-title" aria-hidden="true" style="display:none;">
-          <div class="reset-modal-box reset-modal-box--wide reset-modal-box--xl modal-box">
-            <div class="modal-header">
-              <p id="find-replace-title" class="reset-modal-message">Find &amp; Replace</p>
-              <button type="button" class="modal-close-btn" id="find-replace-close-icon" aria-label="Close find and replace dialog">
-                <i class="bi bi-x-lg"></i>
-              </button>
+        <!-- Find & Replace Floating Panel -->
+        <div id="find-replace-modal" class="find-replace-panel" role="region" aria-label="Find and Replace" style="display:none;">
+          <div class="find-replace-header" id="find-replace-drag-handle">
+            <span class="find-replace-title"><i class="bi bi-search me-1"></i> Find &amp; Replace</span>
+            <div class="find-replace-header-actions">
+              <button type="button" class="panel-icon-btn" id="find-replace-dock" title="Toggle Dock Mode" aria-label="Toggle Dock Mode"><i class="bi bi-layout-sidebar-reverse"></i></button>
+              <button type="button" class="panel-icon-btn" id="find-replace-close-icon" aria-label="Close find and replace panel"><i class="bi bi-x-lg"></i></button>
             </div>
-            <div class="modal-body">
-              <div class="reset-modal-field">
-                <label class="reset-modal-label" for="find-replace-input">Find</label>
-                <input type="text" id="find-replace-input" class="rename-modal-input" placeholder="Find word or phrase" />
-              </div>
-              <div class="reset-modal-field">
-                <label class="reset-modal-label" for="find-replace-with">Replace</label>
-                <input type="text" id="find-replace-with" class="rename-modal-input" placeholder="Replace with" />
-              </div>
-              <div class="find-replace-meta">
-                <span id="find-replace-count" class="find-match-count">0 of 0 matches</span>
-                <div class="find-replace-nav">
-                  <button type="button" class="tool-button find-nav-btn" id="find-prev" title="Previous match" aria-label="Previous match">
-                    <i class="bi bi-chevron-up"></i>
-                  </button>
-                  <button type="button" class="tool-button find-nav-btn" id="find-next" title="Next match" aria-label="Next match">
-                    <i class="bi bi-chevron-down"></i>
-                  </button>
+          </div>
+          <div class="find-replace-body">
+            <!-- Find Row -->
+            <div class="find-replace-field-row">
+              <div class="find-input-container">
+                <input type="text" id="find-replace-input" class="find-input-field" placeholder="Find" aria-label="Find query" />
+                <div class="find-options-group">
+                  <button type="button" class="find-option-btn" id="find-case" title="Match Case (Aa)" aria-label="Match Case">Aa</button>
+                  <button type="button" class="find-option-btn" id="find-word" title="Match Whole Word (W)" aria-label="Match Whole Word">W</button>
+                  <button type="button" class="find-option-btn" id="find-regex" title="Use Regular Expression (.*)" aria-label="Use Regular Expression">.*</button>
+                  <button type="button" class="find-option-btn" id="find-sel" title="Find in Selection (Sel)" aria-label="Find in Selection"><i class="bi bi-align-start"></i></button>
                 </div>
               </div>
             </div>
+            
+            <!-- Real-time Regex Error Box -->
+            <div id="find-replace-error" class="find-error-drawer" style="display:none;">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i> <span id="regex-error-msg"></span>
+            </div>
+
+            <!-- Replace Row -->
+            <div class="find-replace-field-row">
+              <div class="replace-input-container">
+                <input type="text" id="find-replace-with" class="find-input-field" placeholder="Replace" aria-label="Replace with" />
+                <div class="find-options-group">
+                  <button type="button" class="find-option-btn" id="replace-preserve-case" title="Preserve Case (Ab)" aria-label="Preserve Case">Ab</button>
+                  <button type="button" class="find-option-btn active" id="find-wrap" title="Wrap Around (Wrap)" aria-label="Wrap Around" aria-pressed="true">Wrap</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Meta Controls Row -->
+            <div class="find-replace-meta-row">
+              <span id="find-replace-count" class="find-match-count" role="status" aria-live="polite">0 of 0 matches</span>
+              <div class="find-nav-group">
+                <button type="button" class="find-nav-arrow-btn" id="find-prev" title="Previous match (Shift+Enter)" aria-label="Previous match" disabled>
+                  <i class="bi bi-chevron-up"></i>
+                </button>
+                <button type="button" class="find-nav-arrow-btn" id="find-next" title="Next match (Enter)" aria-label="Next match" disabled>
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Advanced Drawer Toggle -->
+            <div class="find-drawer-toggle-row">
+              <button type="button" class="drawer-toggle-btn" id="fr-drawer-toggle" aria-expanded="false">
+                <i class="bi bi-chevron-right me-1"></i> Advanced Options
+              </button>
+            </div>
+
+            <!-- Collapsible Drawer -->
+            <div id="fr-drawer-content" class="find-replace-drawer-content" style="display:none;">
+              <div class="drawer-field">
+                <label for="find-replace-scope" class="drawer-label">Scope Filter</label>
+                <select id="find-replace-scope" class="drawer-select">
+                  <option value="entire">Entire Document</option>
+                  <option value="heading">Headings only</option>
+                  <option value="code">Code blocks only</option>
+                  <option value="latex">LaTeX blocks only</option>
+                  <option value="mermaid">Mermaid blocks only</option>
+                  <option value="plain">Plain text only</option>
+                </select>
+              </div>
+              <div class="drawer-field">
+                <label for="find-replace-history" class="drawer-label">Search History</label>
+                <select id="find-replace-history" class="drawer-select">
+                  <option value="">Recent queries...</option>
+                </select>
+              </div>
+              <div class="drawer-field check-field">
+                <input type="checkbox" id="find-replace-diff-toggle" class="drawer-checkbox" />
+                <label for="find-replace-diff-toggle" class="drawer-label-checkbox">Show Diff Preview before replace</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions Footer -->
+          <div class="find-replace-actions-footer">
+            <button type="button" class="fr-action-btn" id="find-replace-current" disabled>Replace</button>
+            <button type="button" class="fr-action-btn" id="find-replace-all" disabled>Replace All</button>
+            <button type="button" class="fr-action-btn secondary" id="find-replace-close">Close</button>
+          </div>
+        </div>
+
+        <!-- Diff Preview Modal -->
+        <div id="find-replace-diff-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="diff-modal-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box reset-modal-box--xl modal-box">
+            <div class="modal-header">
+              <p id="diff-modal-title" class="reset-modal-message">Replace All Diff Preview</p>
+              <button type="button" class="modal-close-btn" id="find-replace-diff-close-icon" aria-label="Close diff preview dialog">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="modal-body diff-preview-body">
+              <p class="modal-subtext">Review the proposed changes before committing them to the document.</p>
+              <div class="diff-container" id="find-replace-diff-container">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
             <div class="reset-modal-actions">
-              <button class="reset-modal-btn reset-modal-cancel" id="find-replace-close">Close</button>
-              <button class="reset-modal-btn" id="find-replace-current">Replace</button>
-              <button class="reset-modal-btn" id="find-replace-all">Replace All</button>
+              <button class="reset-modal-btn reset-modal-cancel" id="find-replace-diff-cancel">Cancel</button>
+              <button class="reset-modal-btn reset-modal-confirm" id="find-replace-diff-confirm">Commit Replacements</button>
             </div>
           </div>
         </div>
+
 
         <!-- Help Modal -->
         <div id="help-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" aria-hidden="true" style="display:none;">
