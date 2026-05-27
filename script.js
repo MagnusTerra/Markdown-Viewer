@@ -4460,15 +4460,21 @@ This is a fully client-side application. Your content never leaves your browser 
 
     // Reset position handler
     const resetBtn = document.getElementById('find-replace-reset');
+    const resetFooterBtn = document.getElementById('find-replace-reset-footer');
+    const doResetPosition = () => {
+      lastFloatingLeft = null;
+      lastFloatingTop = null;
+      lastFloatingRight = null;
+      modal.style.left = '';
+      modal.style.top = '';
+      modal.style.right = '';
+    };
+
     if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        lastFloatingLeft = null;
-        lastFloatingTop = null;
-        lastFloatingRight = null;
-        modal.style.left = '';
-        modal.style.top = '';
-        modal.style.right = '';
-      });
+      resetBtn.addEventListener('click', doResetPosition);
+    }
+    if (resetFooterBtn) {
+      resetFooterBtn.addEventListener('click', doResetPosition);
     }
 
     // Dock toggle handler

@@ -3013,7 +3013,8 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
   flex-shrink: 0;
 }
 
-.find-replace-panel.docked #find-replace-reset {
+.find-replace-panel.docked #find-replace-reset,
+.find-replace-panel.docked #find-replace-reset-footer {
   display: none !important;
 }
 
