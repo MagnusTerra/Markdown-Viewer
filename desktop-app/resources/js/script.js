@@ -3951,32 +3951,52 @@ This is a fully client-side application. Your content never leaves your browser 
     });
   }
 
+  let frPreferredDocked = false;
+
   function toggleFrDockMode() {
     const panel = document.getElementById('find-replace-modal');
     const dockBtn = document.getElementById('find-replace-dock');
-    const editorWrapper = document.querySelector('.editor-dock-wrapper') || document.querySelector('.content-container');
-    if (!panel || !dockBtn || !editorWrapper) return;
+    const contentCont = document.querySelector('.content-container');
+    if (!panel || !dockBtn || !contentCont) return;
 
     isFrDocked = !isFrDocked;
+    
+    // Save preference to localStorage
+    frPreferredDocked = isFrDocked;
+    localStorage.setItem('find-replace-docked', frPreferredDocked ? 'true' : 'false');
+
     if (isFrDocked) {
       panel.classList.add('docked');
       panel.style.left = 'auto';
       panel.style.top = 'auto';
       panel.style.right = 'auto';
-      // Append panel to dock container
-      editorWrapper.appendChild(panel);
+      
+      // Append panel to dock container (.content-container)
+      contentCont.appendChild(panel);
+      contentCont.classList.add('fr-docked');
+      contentCont.style.setProperty('--dock-width', '340px');
+
       dockBtn.innerHTML = '<i class="bi bi-window"></i>';
       dockBtn.title = "Toggle Floating Mode";
     } else {
       panel.classList.remove('docked');
+      
       // Reset position and float on body
       document.body.appendChild(panel);
-      panel.style.top = '100px';
-      panel.style.right = '20px';
-      panel.style.left = 'auto';
+      contentCont.classList.remove('fr-docked');
+      contentCont.style.setProperty('--dock-width', '0px');
+
+      panel.style.top = '';
+      panel.style.left = '';
+      panel.style.right = '';
+      
       dockBtn.innerHTML = '<i class="bi bi-layout-sidebar-reverse"></i>';
       dockBtn.title = "Toggle Dock Mode";
     }
+    
+    // Ensure display is flex and recalculate split panes
+    panel.style.display = 'flex';
+    applyPaneWidths();
   }
 
   function updateFindControls() {
@@ -4059,16 +4079,21 @@ This is a fully client-side application. Your content never leaves your browser 
     markdownEditor.focus();
     markdownEditor.setSelectionRange(match.start, match.end);
     
-    // Auto-scroll logic if editor cursor is near find-replace panel
-    requestAnimationFrame(() => {
-      const panel = document.getElementById('find-replace-modal');
-      if (!isFrDocked && panel && panel.style.display !== 'none') {
-        const panelRect = panel.getBoundingClientRect();
-        // Check if selection coords intersect
-        // Simplification: if panel is right-aligned, push editor view left if needed,
-        // or just let native setSelectionRange scroll to cursor naturally.
-      }
-    });
+    // Explicitly scroll editor to center active match in viewport
+    try {
+      const styles = window.getComputedStyle(markdownEditor);
+      const lineHeight = parseFloat(styles.lineHeight) || 21;
+      const textBefore = markdownEditor.value.slice(0, match.start);
+      const lineIndex = textBefore.split('\n').length - 1;
+      const editorHeight = markdownEditor.clientHeight;
+      const targetScrollTop = Math.max(0, (lineIndex * lineHeight) - (editorHeight / 2) + (lineHeight / 2));
+      
+      markdownEditor.scrollTop = targetScrollTop;
+      syncHighlightScroll();
+      syncLineNumberScroll();
+    } catch (e) {
+      console.warn("Viewport centering scroll failed:", e);
+    }
   }
 
   function cycleFindMatch(direction) {
@@ -4093,6 +4118,17 @@ This is a fully client-side application. Your content never leaves your browser 
       findReplaceInput.value = selected;
     }
 
+    // Restore docked/floating mode preference
+    const wasDockedPref = localStorage.getItem('find-replace-docked') === 'true';
+    
+    if (wasDockedPref) {
+      isFrDocked = false; // Set false so toggleFrDockMode() turns it to true
+      toggleFrDockMode();
+    } else {
+      isFrDocked = true; // Set true so toggleFrDockMode() turns it to false
+      toggleFrDockMode();
+    }
+
     findReplaceModal.style.display = 'flex';
     
     requestAnimationFrame(function() {
@@ -4109,11 +4145,16 @@ This is a fully client-side application. Your content never leaves your browser 
   function closeFindReplaceModal() {
     isFindModalOpen = false;
     const panel = document.getElementById('find-replace-modal');
+    const contentCont = document.querySelector('.content-container');
     if (panel) {
       panel.style.display = 'none';
       if (isFrDocked) {
-        // Undock and return to body
-        toggleFrDockMode();
+        // Reset split layout styles when closed
+        if (contentCont) {
+          contentCont.classList.remove('fr-docked');
+          contentCont.style.setProperty('--dock-width', '0px');
+          applyPaneWidths();
+        }
       }
     }
     findMatches = [];
@@ -4587,8 +4628,8 @@ This is a fully client-side application. Your content never leaves your browser 
     if (currentViewMode !== 'split') return;
 
     const previewPercent = 100 - editorWidthPercent;
-    editorPaneElement.style.flex = `0 0 calc(${editorWidthPercent}% - 4px)`;
-    previewPaneElement.style.flex = `0 0 calc(${previewPercent}% - 4px)`;
+    editorPaneElement.style.flex = `0 0 calc((100% - var(--dock-width, 0px)) * ${editorWidthPercent / 100} - 4px)`;
+    previewPaneElement.style.flex = `0 0 calc((100% - var(--dock-width, 0px)) * ${previewPercent / 100} - 4px)`;
     scheduleLineNumberUpdate();
   }
 
@@ -4731,11 +4772,6 @@ This is a fully client-side application. Your content never leaves your browser 
   
   // Editor key handlers for list continuation and indentation
   markdownEditor.addEventListener("keydown", function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-      e.preventDefault();
-      openFindReplaceModal();
-      return;
-    }
     if (handleListEnter(e)) {
       return;
     }
@@ -5954,7 +5990,40 @@ This is a fully client-side application. Your content never leaves your browser 
     if (e.target === shareModal) closeShareModal();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && shareModal.classList.contains('is-visible')) closeShareModal();
+    if (e.key === 'Escape' && shareModal.classList.contains('is-visible')) {
+      closeShareModal();
+    }
+    
+    // Global Ctrl+F / Cmd+F interception
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      e.preventDefault();
+      openFindReplaceModal();
+      const findInput = document.getElementById('find-replace-input');
+      if (findInput) {
+        findInput.focus();
+        findInput.select();
+      }
+      return;
+    }
+    
+    // Global Ctrl+H / Cmd+H interception
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') {
+      e.preventDefault();
+      openFindReplaceModal();
+      const replaceInput = document.getElementById('find-replace-with');
+      if (replaceInput) {
+        replaceInput.focus();
+        replaceInput.select();
+      }
+      return;
+    }
+    
+    // Global Escape dismissal for find-replace panel
+    if (e.key === 'Escape' && isFindModalOpen) {
+      e.preventDefault();
+      closeFindReplaceModal();
+      return;
+    }
   });
 
   shareButton.addEventListener('click', openShareModal);

@@ -573,12 +573,14 @@ body {
 }
 
 .find-highlight {
-  background-color: rgba(255, 196, 0, 0.35);
+  background-color: var(--fr-match-highlight, rgba(255, 223, 93, 0.4)) !important;
   border-radius: 2px;
+  color: transparent !important;
 }
 
 .find-highlight.active {
-  background-color: rgba(255, 196, 0, 0.65);
+  background-color: var(--fr-match-active, #ff9b30) !important;
+  color: transparent !important;
 }
 
 /* Dropdown improvements */
