@@ -1,4 +1,4 @@
-const CACHE_NAME = 'markdown-viewer-cache-v3.7.0';
+const CACHE_NAME = 'markdown-viewer-cache-v3.6.6';
 const ASSETS = [
   './',
   './index.html',
