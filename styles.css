@@ -53,7 +53,8 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* PERF-021: Removed background-color transition to avoid full-viewport repaint on theme toggle */
+  transition: color 0.15s ease;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Hiragino Kaku Gothic ProN", Meiryo, "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
@@ -86,7 +87,8 @@ body {
   padding: 20px;
   overflow-y: auto;
   position: relative;
-  transition: background-color 0.3s ease;
+  /* PERF-025: Shortened transition and scoped to background-color only */
+  transition: background-color 0.15s ease;
 }
 
 .editor-pane {
@@ -402,7 +404,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: all 0.2s ease;
+  /* PERF-016: Specific transition properties instead of 'all' to avoid animating layout-triggering properties */
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .tool-button:hover {
@@ -3415,7 +3418,8 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
   border-radius: 6px;
   position: relative;
   overflow: hidden;
-  animation: skeleton-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  /* PERF-017: Removed skeleton-pulse; shimmer-only is sufficient and halves GPU compositing layers */
+  /* animation: skeleton-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; */
 }
 
 .skeleton-placeholder::after {
@@ -3583,5 +3587,29 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
     rgba(255, 255, 255, 0) 100%
   );
   animation: skeleton-shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Accessibility: respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-placeholder,
+  .skeleton-placeholder::after,
+  .mermaid-container.is-loading,
+  .mermaid-container.is-loading::after {
+    animation: none;
+  }
+  .drag-overlay-inner {
+    animation: none;
+  }
+  .tab-item-new {
+    animation: none;
+  }
+  body,
+  .app-header,
+  .editor-pane,
+  .preview-pane,
+  .tool-button,
+  .markdown-tool-btn {
+    transition: none;
+  }
 }
 

@@ -189,13 +189,18 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   ];
 
+  // In-memory cache for global state to avoid repeated JSON parse/stringify round-trips (PERF-008/024)
+  let _globalStateCache = null;
   function loadGlobalState() {
-    try { return JSON.parse(localStorage.getItem(GLOBAL_STATE_KEY)) || {}; }
-    catch { return {}; }
+    if (_globalStateCache) return _globalStateCache;
+    try { _globalStateCache = JSON.parse(localStorage.getItem(GLOBAL_STATE_KEY)) || {}; }
+    catch { _globalStateCache = {}; }
+    return _globalStateCache;
   }
 
   function saveGlobalState(patch) {
-    localStorage.setItem(GLOBAL_STATE_KEY, JSON.stringify({ ...loadGlobalState(), ...patch }));
+    _globalStateCache = { ...loadGlobalState(), ...patch };
+    localStorage.setItem(GLOBAL_STATE_KEY, JSON.stringify(_globalStateCache));
   }
 
   // Check dark mode preference first for proper initialization
@@ -237,9 +242,15 @@ document.addEventListener("DOMContentLoaded", function () {
   applyDirectionToContent(initialDirection);
   updateDirectionToggleUI(initialDirection);
 
-  const initMermaid = () => {
+  // Track last Mermaid theme to avoid redundant re-initialization (PERF-005)
+  let _lastMermaidTheme = null;
+  const initMermaid = (forceReinit) => {
     const currentTheme = document.documentElement.getAttribute("data-theme");
     const mermaidTheme = currentTheme === "dark" ? "dark" : "default";
+    
+    // Skip re-initialization if theme hasn't changed (PERF-005)
+    if (!forceReinit && _lastMermaidTheme === mermaidTheme) return;
+    _lastMermaidTheme = mermaidTheme;
     
     mermaid.initialize({
       startOnLoad: false,
@@ -1009,12 +1020,28 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function saveTabsToStorage(tabsArr) {
+    // PERF-008: Debounce tab saves to reduce main thread blocking from JSON.stringify
+    // on large document arrays. Immediate flush happens on visibilitychange/beforeunload.
+    clearTimeout(saveTabStateTimeout);
+    saveTabStateTimeout = setTimeout(function() {
+      _flushTabsToStorage(tabsArr);
+    }, 500);
+  }
+
+  function _flushTabsToStorage(tabsArr) {
+    clearTimeout(saveTabStateTimeout);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tabsArr));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tabsArr || tabs));
     } catch (e) {
       console.warn('Failed to save tabs to localStorage:', e);
     }
   }
+
+  // Ensure tabs are persisted before page close (PERF-008)
+  window.addEventListener('beforeunload', function() { _flushTabsToStorage(tabs); });
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') _flushTabsToStorage(tabs);
+  });
 
   function loadActiveTabId() {
     return localStorage.getItem(ACTIVE_TAB_KEY);
@@ -1614,8 +1641,8 @@ This is a fully client-side application. Your content never leaves your browser 
 
       processEmojis(markdownPreview);
       
-      // Reinitialize mermaid with current theme before rendering diagrams
-      initMermaid();
+      // Only reinitialize mermaid if theme changed (PERF-005 — was called on every render)
+      initMermaid(false);
       
       try {
         const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
@@ -2142,6 +2169,10 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function processEmojis(element) {
+    // Early exit if the raw text content has no colon characters (PERF-013)
+    // This avoids the expensive TreeWalker DOM walk for documents without emoji shortcodes
+    if (!element.textContent || !element.textContent.includes(':')) return;
+    
     const walker = document.createTreeWalker(
       element,
       NodeFilter.SHOW_TEXT,
@@ -5130,7 +5161,35 @@ This is a fully client-side application. Your content never leaves your browser 
       themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
     }
     
-    renderMarkdown();
+    // PERF-004: Only re-render Mermaid diagrams on theme change instead of full renderMarkdown()
+    // CSS custom properties handle all other theme transitions automatically.
+    initMermaid(true); // Force re-init with new theme
+    try {
+      const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
+      if (mermaidNodes.length > 0) {
+        // Clear existing rendered Mermaid SVGs and re-render with new theme
+        mermaidNodes.forEach(function(node) {
+          node.removeAttribute('data-processed');
+          const container = node.closest('.mermaid-container');
+          if (container) container.classList.add('is-loading');
+        });
+        Promise.resolve(mermaid.init(undefined, mermaidNodes))
+          .then(function() {
+            markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
+              c.classList.remove('is-loading');
+            });
+            addMermaidToolbars();
+          })
+          .catch(function(e) {
+            console.warn('Mermaid theme re-render failed:', e);
+            markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
+              c.classList.remove('is-loading');
+            });
+          });
+      }
+    } catch (e) {
+      console.warn('Mermaid theme re-render failed:', e);
+    }
   });
 
   async function nativeSaveMarkdown() {

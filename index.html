@@ -9,6 +9,10 @@
     <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 
+    <!-- PERF-015: Preload critical-path resources for faster discovery -->
+    <link rel="preload" href="styles.css" as="style">
+    <link rel="preload" href="script.js" as="script">
+
     <!-- Canonical Link -->
     <link rel="canonical" href="https://markdownviewer.pages.dev/">
 
@@ -19,9 +23,6 @@
     <link rel="alternate" hreflang="ja" href="https://markdownviewer.pages.dev/?lang=ja" />
     <link rel="alternate" hreflang="ko" href="https://markdownviewer.pages.dev/?lang=ko" />
     <link rel="alternate" hreflang="pt-BR" href="https://markdownviewer.pages.dev/?lang=pt" />
-    <!-- Asian Search Engine Verification Meta Tags -->
-    <meta name="baidu-site-verification" content="baidu_verification_code_placeholder" />
-    <meta name="naver-site-verification" content="naver_verification_code_placeholder" />
     <!-- PWA Web Manifest -->
     <link rel="manifest" href="manifest.json">
 

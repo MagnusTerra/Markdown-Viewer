@@ -1,15 +1,31 @@
 # Use nginx as the base image for serving static files
 FROM nginx:alpine
 
-# Copy the static files to the nginx html directory
-COPY . /usr/share/nginx/html/
+# PERF-019: Only copy necessary web files (exclude .git, desktop-app, wiki, etc.)
+COPY index.html /usr/share/nginx/html/
+COPY script.js /usr/share/nginx/html/
+COPY styles.css /usr/share/nginx/html/
+COPY sw.js /usr/share/nginx/html/
+COPY manifest.json /usr/share/nginx/html/
+COPY robots.txt /usr/share/nginx/html/
+COPY sitemap.xml /usr/share/nginx/html/
+COPY assets/icon.jpg /usr/share/nginx/html/assets/
 
-# Create a custom nginx configuration for SPA routing
+# Create a custom nginx configuration with compression and security
+# PERF-020: Added gzip compression for text-based assets
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
     root /usr/share/nginx/html; \
     index index.html; \
+    \
+    # Enable gzip compression (PERF-020) \
+    gzip on; \
+    gzip_vary on; \
+    gzip_proxied any; \
+    gzip_comp_level 6; \
+    gzip_min_length 256; \
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml; \
     \
     # Handle client-side routing for SPA \
     location / { \
