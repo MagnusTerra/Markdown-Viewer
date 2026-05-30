@@ -3,7 +3,7 @@
 All notable code changes to **Markdown Viewer** are documented here.
 Non-code commits (documentation, planning, README-only updates) are excluded.
 
-## v3.7.0
+## v3.6.6
 
 - **Description:** Implemented extensive security hardening, accessibility remediation, and high-performance user experience upgrades. 
   - **Security (PR 130):** Hardened offline desktop-app configuration by restricting the WebSocket communication server, enabling system process automatic cleanup on window close, and implementing secure build-time cryptographic dependency checks verifying SHA-384 integrity parameters of external assets.
