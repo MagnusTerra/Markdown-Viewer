@@ -864,18 +864,13 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace(/"/g, '&quot;');
   }
 
-  // PERF-012: Default template loaded from external file to reduce bundle size
-  let sampleMarkdown = '# Welcome to Markdown Viewer\n\nStart typing your markdown here...';
-  fetch('sample.md').then(function(r) { return r.text(); }).then(function(text) {
-    sampleMarkdown = text;
-    // Only apply if editor still has the simple fallback or is empty
-    if (!markdownEditor.value || markdownEditor.value === '# Welcome to Markdown Viewer\n\nStart typing your markdown here...') {
-      markdownEditor.value = sampleMarkdown;
-      renderMarkdown();
-    }
-  }).catch(function() { /* Use inline fallback */ });
+  // PERF-012: Inlined default template to eliminate network request, FOUC, and layout shifts
+  const defaultMarkdownTemplate = document.getElementById('default-markdown');
+  const sampleMarkdown = defaultMarkdownTemplate ? defaultMarkdownTemplate.textContent.trim() : '# Welcome to Markdown Viewer\n\nStart typing your markdown here...';
 
-  markdownEditor.value = sampleMarkdown;
+  if (!markdownEditor.value) {
+    markdownEditor.value = sampleMarkdown;
+  }
 
   // ========================================
   // DOCUMENT TABS & SESSION MANAGEMENT
