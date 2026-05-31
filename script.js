@@ -1518,6 +1518,14 @@ document.addEventListener("DOMContentLoaded", function () {
       enhanceGitHubAlerts(markdownPreview);
 
       processEmojis(markdownPreview);
+
+      // Add accessible dynamic labels to task list checkboxes matching their parent text
+      markdownPreview.querySelectorAll('input[type="checkbox"]').forEach(function(input) {
+        if (!input.hasAttribute('aria-label')) {
+          const parentText = input.parentElement ? input.parentElement.textContent.trim() : '';
+          input.setAttribute('aria-label', parentText || 'Task item');
+        }
+      });
       
       // PERF-002: Lazy-load mermaid only when diagrams are present
       try {
@@ -1559,7 +1567,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (hasMath) {
         if (window.MathJax) {
           try {
-            MathJax.typesetPromise([markdownPreview]).catch((err) => {
+            MathJax.typesetPromise([markdownPreview]).then(function() {
+              markdownPreview.querySelectorAll('mjx-container[tabindex="0"]').forEach(function(mjx) {
+                mjx.removeAttribute('tabindex');
+              });
+            }).catch(function(err) {
               console.warn('MathJax typesetting failed:', err);
             });
           } catch (e) {
@@ -1578,7 +1590,11 @@ document.addEventListener("DOMContentLoaded", function () {
           };
           loadScript(CDN.mathjax).then(function() {
             try {
-              MathJax.typesetPromise([markdownPreview]).catch(function(err) {
+              MathJax.typesetPromise([markdownPreview]).then(function() {
+                markdownPreview.querySelectorAll('mjx-container[tabindex="0"]').forEach(function(mjx) {
+                  mjx.removeAttribute('tabindex');
+                });
+              }).catch(function(err) {
                 console.warn('MathJax typesetting failed:', err);
               });
             } catch (e) {
