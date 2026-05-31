@@ -555,8 +555,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   text-align: right;
-  color: var(--text-color);
-  opacity: 0.55;
+  color: var(--text-secondary);
   background-color: var(--editor-bg);
   border-right: 1px solid var(--border-color);
   box-sizing: border-box;
