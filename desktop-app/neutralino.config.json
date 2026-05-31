@@ -27,8 +27,8 @@
   "modes": {
     "window": {
       "title": "Markdown Viewer",
-      "width": 800,
-      "height": 500,
+      "width": 1280,
+      "height": 720,
       "minWidth": 400,
       "minHeight": 200,
       "center": true,
@@ -51,8 +51,8 @@
       "nativeAllowList": ["app.*"]
     },
     "chrome": {
-      "width": 800,
-      "height": 500,
+      "width": 1280,
+      "height": 720,
       "args": "--user-agent=\"Neutralinojs chrome mode\"",
       "nativeBlockList": ["filesystem.*", "os.*"]
     }

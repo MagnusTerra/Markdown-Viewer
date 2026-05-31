@@ -1,35 +1,28 @@
-const CACHE_NAME = 'markdown-viewer-cache-v3.6.6';
-const ASSETS = [
+const CACHE_NAME = 'markdown-viewer-cache-v3.6.7';
+
+// PERF-011: Split precache into critical (local files) and lazy (CDN libraries)
+// Critical assets are precached during SW install for instant offline startup
+const CRITICAL_ASSETS = [
   './',
   './index.html',
   './script.js',
   './styles.css',
+  './sample.md',
   './assets/icon.jpg',
-  './manifest.json',
-  // CDN Stylesheets
-  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.3.0/github-markdown.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
-  'https://cdn.jsdelivr.net/npm/emoji-toolkit@9.0.1/extras/css/joypixels.min.css',
-  // CDN Scripts
-  'https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js',
-  'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js',
-  'https://cdn.jsdelivr.net/npm/emoji-toolkit@9.0.1/lib/js/joypixels.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js'
+  './manifest.json'
+];
+
+// CDN assets are cached lazily on first use via runtime cache-first strategy
+// This prevents the SW install from downloading ~5.4 MB of CDN resources upfront
+const CDN_ORIGINS = [
+  'cdnjs.cloudflare.com',
+  'cdn.jsdelivr.net'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
+      .then(cache => cache.addAll(CRITICAL_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
@@ -49,6 +42,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   const isLocal = url.origin === self.location.origin;
+  const isCDN = CDN_ORIGINS.some(origin => url.hostname.includes(origin));
 
   if (isLocal) {
     // Stale-While-Revalidate strategy for local code assets
@@ -67,8 +61,9 @@ self.addEventListener('fetch', event => {
         });
       })
     );
-  } else {
+  } else if (isCDN) {
     // Cache-First strategy for stable third-party CDN libraries
+    // PERF-011: CDN resources are cached on first use (lazy) rather than precached
     event.respondWith(
       caches.match(event.request)
         .then(cachedResponse => {
@@ -76,10 +71,7 @@ self.addEventListener('fetch', event => {
             return cachedResponse;
           }
           return fetch(event.request).then(response => {
-            if (response && response.status === 200 && (
-              event.request.url.includes('cdnjs.cloudflare.com') ||
-              event.request.url.includes('cdn.jsdelivr.net')
-            )) {
+            if (response && response.status === 200) {
               const responseToCache = response.clone();
               caches.open(CACHE_NAME).then(cache => {
                 cache.put(event.request, responseToCache);
@@ -89,5 +81,8 @@ self.addEventListener('fetch', event => {
           });
         })
     );
+  } else {
+    // Network-only for non-CDN external requests
+    event.respondWith(fetch(event.request));
   }
 });

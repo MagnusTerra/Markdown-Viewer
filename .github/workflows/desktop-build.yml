@@ -21,6 +21,15 @@ jobs:
         with:
           node-version: "lts/*"
 
+      # PERF-022: Cache Neutralino binaries and downloaded CDN libraries
+      - name: Cache Neutralino binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            desktop-app/bin
+            desktop-app/resources/libs
+          key: neutralino-${{ hashFiles('desktop-app/neutralino.config.json') }}
+
       - name: Setup Neutralinojs binaries
         working-directory: desktop-app
         run: npm run setup

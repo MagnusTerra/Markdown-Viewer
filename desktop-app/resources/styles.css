@@ -19,6 +19,18 @@
   --code-bg: #f6f8fa; /* Code block background for light mode */
   --skeleton-bg: #e2e8f0;
   --skeleton-glow: rgba(255, 255, 255, 0.65);
+
+  /* Find & Replace Panel custom properties (PERF-010 consolidated) */
+  --fr-bg: rgba(255, 255, 255, 0.95);
+  --fr-border: #d0d7de;
+  --fr-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+  --fr-btn-active: #0969da;
+  --fr-btn-active-bg: #ddf4ff;
+  --fr-match-highlight: #ffdf5d;
+  --fr-match-active: #ff9b30;
+  --fr-error-bg: #ffebe9;
+  --fr-error-border: #ff8577;
+  --fr-text-danger: #cf222e;
 }
 
 [data-theme="dark"] {
@@ -27,7 +39,6 @@
   --preview-bg: #0d1117; /* Preview background for dark mode */
   --text-color: #c9d1d9;
   --text-secondary: #8b949e;
-  --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
   --color-danger-fg: #f85149;
   --preview-text-color: #c9d1d9; /* Text color for preview in dark mode */
   --border-color: #30363d;
@@ -42,6 +53,18 @@
   --code-bg: #161b22; /* Code block background for dark mode */
   --skeleton-bg: #2d3139;
   --skeleton-glow: rgba(255, 255, 255, 0.08);
+
+  /* Find & Replace Panel custom properties for dark mode */
+  --fr-bg: rgba(28, 33, 40, 0.98);
+  --fr-border: #444c56;
+  --fr-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --fr-btn-active: #2f81f7;
+  --fr-btn-active-bg: rgba(56, 139, 253, 0.15);
+  --fr-match-highlight: rgba(187, 128, 9, 0.4);
+  --fr-match-active: #f1e05a;
+  --fr-error-bg: rgba(248, 81, 73, 0.1);
+  --fr-error-border: rgba(248, 81, 73, 0.4);
+  --fr-text-danger: #ff7b72;
 }
 
 * {
@@ -53,7 +76,8 @@
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  /* PERF-021: Removed background-color transition to avoid full-viewport repaint on theme toggle */
+  transition: color 0.15s ease;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Hiragino Kaku Gothic ProN", Meiryo, "Malgun Gothic", "Apple SD Gothic Neo", "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
@@ -86,7 +110,8 @@ body {
   padding: 20px;
   overflow-y: auto;
   position: relative;
-  transition: background-color 0.3s ease;
+  /* PERF-025: Shortened transition and scoped to background-color only */
+  transition: background-color 0.15s ease;
 }
 
 .editor-pane {
@@ -402,7 +427,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: all 0.2s ease;
+  /* PERF-016: Specific transition properties instead of 'all' to avoid animating layout-triggering properties */
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .tool-button:hover {
@@ -2956,31 +2982,6 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
 /* ========================================
    FIND & REPLACE FLOATING PANEL DESIGN
    ======================================== */
-:root {
-  --fr-bg: rgba(255, 255, 255, 0.95);
-  --fr-border: #d0d7de;
-  --fr-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
-  --fr-btn-active: #0969da;
-  --fr-btn-active-bg: #ddf4ff;
-  --fr-match-highlight: #ffdf5d;
-  --fr-match-active: #ff9b30;
-  --fr-error-bg: #ffebe9;
-  --fr-error-border: #ff8577;
-  --fr-text-danger: #cf222e;
-}
-
-[data-theme="dark"] {
-  --fr-bg: rgba(28, 33, 40, 0.98);
-  --fr-border: #444c56;
-  --fr-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --fr-btn-active: #2f81f7;
-  --fr-btn-active-bg: rgba(56, 139, 253, 0.15);
-  --fr-match-highlight: rgba(187, 128, 9, 0.4);
-  --fr-match-active: #f1e05a;
-  --fr-error-bg: rgba(248, 81, 73, 0.1);
-  --fr-error-border: rgba(248, 81, 73, 0.4);
-  --fr-text-danger: #ff7b72;
-}
 
 .find-replace-panel {
   position: fixed;
@@ -3415,7 +3416,8 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
   border-radius: 6px;
   position: relative;
   overflow: hidden;
-  animation: skeleton-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  /* PERF-017: Removed skeleton-pulse; shimmer-only is sufficient and halves GPU compositing layers */
+  /* animation: skeleton-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; */
 }
 
 .skeleton-placeholder::after {
@@ -3583,5 +3585,29 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
     rgba(255, 255, 255, 0) 100%
   );
   animation: skeleton-shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Accessibility: respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-placeholder,
+  .skeleton-placeholder::after,
+  .mermaid-container.is-loading,
+  .mermaid-container.is-loading::after {
+    animation: none;
+  }
+  .drag-overlay-inner {
+    animation: none;
+  }
+  .tab-item-new {
+    animation: none;
+  }
+  body,
+  .app-header,
+  .editor-pane,
+  .preview-pane,
+  .tool-button,
+  .markdown-tool-btn {
+    transition: none;
+  }
 }
 

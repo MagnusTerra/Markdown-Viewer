@@ -1,4 +1,4 @@
-version: '3.8'
+# PERF-035: Removed deprecated 'version' key (Docker Compose v2+ ignores it)
 
 services:
   markdown-viewer:

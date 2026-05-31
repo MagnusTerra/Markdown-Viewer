@@ -23,13 +23,19 @@ const LIBS_DIR = path.join(RESOURCES_DIR, "libs");
 fs.mkdirSync(jsDest, { recursive: true });
 fs.mkdirSync(LIBS_DIR, { recursive: true });
 
-function copyDirSync(src, dest) {
+function copyDirSync(src, dest, excludePatterns) {
+  if (!excludePatterns) excludePatterns = [];
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
+    // PERF-027: Skip files matching exclusion patterns (e.g., large demo GIFs)
+    if (excludePatterns.some(p => entry.name.match(p))) {
+      console.log(`  ⊘ Skipped ${entry.name} (excluded from desktop build)`);
+      continue;
+    }
     if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
+      copyDirSync(srcPath, destPath, excludePatterns);
     } else {
       fs.copyFileSync(srcPath, destPath);
     }
@@ -43,8 +49,9 @@ console.log("✓ Copied script.js → resources/js/script.js");
 fs.copyFileSync(path.join(ROOT_DIR, "styles.css"), path.join(RESOURCES_DIR, "styles.css"));
 console.log("✓ Copied styles.css → resources/styles.css");
 
-copyDirSync(path.join(ROOT_DIR, "assets"), path.join(RESOURCES_DIR, "assets"));
-console.log("✓ Copied assets/ → resources/assets/");
+// PERF-027: Exclude large demo assets (GIFs) from desktop build to reduce binary size
+copyDirSync(path.join(ROOT_DIR, "assets"), path.join(RESOURCES_DIR, "assets"), [/\.gif$/i]);
+console.log("✓ Copied assets/ → resources/assets/ (excluding GIF demos)");
 
 /**
  * Validates the cryptographic integrity of a file against an expected SHA-384 hash.
@@ -195,6 +202,13 @@ async function prepareOfflineDependencies() {
   html = html.replace(/href="assets\//g, 'href="/assets/');
   html = html.replace(/href="styles\.css"/g, 'href="/styles.css"');
   
+  // PERF-034: Strip web-specific SEO tags, canonical, hreflang, preconnect, manifest and JSON-LD structured data for desktop build
+  html = html.replace(/<!-- DNS Prefetch & Preconnect CDN Origins to Warm Up Latency -->[\s\S]*?<!-- PERF-015:/i, '<!-- PERF-015:');
+  html = html.replace(/<!-- Canonical Link -->[\s\S]*?<!-- PWA Web Manifest -->/i, '<!-- PWA Web Manifest -->');
+  html = html.replace(/<link rel="manifest" href="manifest\.json">/i, '');
+  html = html.replace(/<!-- Primary Meta Tags -->[\s\S]*?<!-- JSON-LD Structured Data Schema/i, '<!-- JSON-LD Structured Data Schema');
+  html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/i, '');
+
   // Inject Neutralino script tags
   html = html.replace(
     /<script\s+src="script\.js"\s*><\/script>/i,

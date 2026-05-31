@@ -1,5 +1,30 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // PERF-002: Lazy script loader for optional heavy libraries
+  const _loadedScripts = new Set();
+  function loadScript(url) {
+    if (_loadedScripts.has(url)) return Promise.resolve();
+    return new Promise(function(resolve, reject) {
+      const script = document.createElement('script');
+      script.src = url;
+      script.onload = function() { _loadedScripts.add(url); resolve(); };
+      script.onerror = function() { reject(new Error('Failed to load: ' + url)); };
+      document.head.appendChild(script);
+    });
+  }
+
+  // CDN URLs for lazy-loaded libraries
+  const CDN = {
+    mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js',
+    mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js',
+    jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    pako: 'https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js',
+    joypixels: 'https://cdn.jsdelivr.net/npm/emoji-toolkit@9.0.1/lib/js/joypixels.min.js'
+  };
+
   let markdownRenderTimeout = null;
+  // PERF-003: Track last rendered content to skip redundant renders
+  let _lastRenderedContent = null;
   const RENDER_DELAY = 100;
   let syncScrollingEnabled = true;
   let isEditorScrolling = false;
@@ -189,13 +214,18 @@ document.addEventListener("DOMContentLoaded", function () {
     },
   ];
 
+  // In-memory cache for global state to avoid repeated JSON parse/stringify round-trips (PERF-008/024)
+  let _globalStateCache = null;
   function loadGlobalState() {
-    try { return JSON.parse(localStorage.getItem(GLOBAL_STATE_KEY)) || {}; }
-    catch { return {}; }
+    if (_globalStateCache) return _globalStateCache;
+    try { _globalStateCache = JSON.parse(localStorage.getItem(GLOBAL_STATE_KEY)) || {}; }
+    catch { _globalStateCache = {}; }
+    return _globalStateCache;
   }
 
   function saveGlobalState(patch) {
-    localStorage.setItem(GLOBAL_STATE_KEY, JSON.stringify({ ...loadGlobalState(), ...patch }));
+    _globalStateCache = { ...loadGlobalState(), ...patch };
+    localStorage.setItem(GLOBAL_STATE_KEY, JSON.stringify(_globalStateCache));
   }
 
   // Check dark mode preference first for proper initialization
@@ -237,9 +267,16 @@ document.addEventListener("DOMContentLoaded", function () {
   applyDirectionToContent(initialDirection);
   updateDirectionToggleUI(initialDirection);
 
-  const initMermaid = () => {
+  // Track last Mermaid theme to avoid redundant re-initialization (PERF-005)
+  let _lastMermaidTheme = null;
+  const initMermaid = (forceReinit) => {
+    if (typeof mermaid === 'undefined') return; // PERF-002: Not loaded yet
     const currentTheme = document.documentElement.getAttribute("data-theme");
     const mermaidTheme = currentTheme === "dark" ? "dark" : "default";
+    
+    // Skip re-initialization if theme hasn't changed (PERF-005)
+    if (!forceReinit && _lastMermaidTheme === mermaidTheme) return;
+    _lastMermaidTheme = mermaidTheme;
     
     mermaid.initialize({
       startOnLoad: false,
@@ -250,11 +287,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   };
 
-  try {
-    initMermaid();
-  } catch (e) {
-    console.warn("Mermaid initialization failed:", e);
-  }
+  // PERF-002: Removed eager initMermaid() — mermaid is now lazy-loaded on first use
 
   const markedOptions = {
     gfm: true,
@@ -817,173 +850,16 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace(/"/g, '&quot;');
   }
 
-  const sampleMarkdown = `---
-title: Welcome to Markdown Viewer
-description: A GitHub-style Markdown renderer with live preview, math, diagrams, and export support.
-author: ThisIs-Developer
-tags: ["markdown", "preview", "mermaid", "latex", "open-source"]
----
-
-# Welcome to Markdown Viewer
-
-## ✨ Key Features
-- **Live Preview** with GitHub styling
-- **Smart Import/Export** (MD, HTML, PDF)
-- **Mermaid Diagrams** for visual documentation
-- **LaTeX Math Support** for scientific notation
-- **Emoji Support** 😄 👍 🎉
-
-## 💻 Code with Syntax Highlighting
-\`\`\`javascript
-  function renderMarkdown() {
-    const markdown = markdownEditor.value;
-    const html = marked.parse(markdown);
-    const sanitizedHtml = DOMPurify.sanitize(html);
-    markdownPreview.innerHTML = sanitizedHtml;
-    
-    // Syntax highlighting is handled automatically
-    // during the parsing phase by the marked renderer.
-    // Themes are applied instantly via CSS variables.
-  }
-\`\`\`
-
-## 🧮 Mathematical Expressions
-Write complex formulas with LaTeX syntax:
-
-Inline equation: $$E = mc^2$$
-
-Display equations:
-$$\\frac{\\partial f}{\\partial x} = \\lim_{h \\to 0} \\frac{f(x+h) - f(x)}{h}$$
-
-$$\\sum_{i=1}^{n} i^2 = \\frac{n(n+1)(2n+1)}{6}$$
-
-## 📊 Mermaid Diagrams
-Create powerful visualizations directly in markdown:
-
-\`\`\`mermaid
-flowchart LR
-    A[Start] --> B{Is it working?}
-    B -->|Yes| C[Great!]
-    B -->|No| D[Debug]
-    C --> E[Deploy]
-    D --> B
-\`\`\`
-
-### Sequence Diagram Example
-\`\`\`mermaid
-sequenceDiagram
-    User->>Editor: Type markdown
-    Editor->>Preview: Render content
-    User->>Editor: Make changes
-    Editor->>Preview: Update rendering
-    User->>Export: Save as PDF
-\`\`\`
-
-## 📋 Task Management
-- [x] Create responsive layout
-- [x] Implement live preview with GitHub styling
-- [x] Add syntax highlighting for code blocks
-- [x] Support math expressions with LaTeX
-- [x] Enable mermaid diagrams
-
-## 🆚 Feature Comparison
-
-| Feature                  | Markdown Viewer (Ours) | Other Markdown Editors  |
-|:-------------------------|:----------------------:|:-----------------------:|
-| Live Preview             | ✅ GitHub-Styled       | ✅                     |
-| Sync Scrolling           | ✅ Two-way             | 🔄 Partial/None        |
-| Mermaid Support          | ✅                     | ❌/Limited             |
-| LaTeX Math Rendering     | ✅                     | ❌/Limited             |
-
-### 📝 Multi-row Headers Support
-
-<table>
-  <thead>
-    <tr>
-      <th rowspan="2">Document Type</th>
-      <th colspan="2">Support</th>
-    </tr>
-    <tr>
-      <th>Markdown Viewer (Ours)</th>
-      <th>Other Markdown Editors</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Technical Docs</td>
-      <td>Full + Diagrams</td>
-      <td>Limited/Basic</td>
-    </tr>
-    <tr>
-      <td>Research Notes</td>
-      <td>Full + Math</td>
-      <td>Partial</td>
-    </tr>
-    <tr>
-      <td>Developer Guides</td>
-      <td>Full + Export Options</td>
-      <td>Basic</td>
-    </tr>
-  </tbody>
-</table>
-
-## 📝 Text Formatting Examples
-
-### Text Formatting
-
-Text can be formatted in various ways for ~~strikethrough~~, **bold**, *italic*, or ***bold italic***.
-
-For highlighting important information, use <mark>highlighted text</mark> or add <u>underlines</u> where appropriate.
-
-### Superscript and Subscript
-
-Chemical formulas: H<sub>2</sub>O, CO<sub>2</sub>  
-Mathematical notation: x<sup>2</sup>, e<sup>iπ</sup>
-
-### Keyboard Keys
-
-Press <kbd>Ctrl</kbd> + <kbd>B</kbd> for bold text.
-
-### Abbreviations
-
-<abbr title="Graphical User Interface">GUI</abbr>  
-<abbr title="Application Programming Interface">API</abbr>
-
-### Text Alignment
-
-<div style="text-align: center">
-Centered text for headings or important notices
-</div>
-
-<div style="text-align: right">
-Right-aligned text (for dates, signatures, etc.)
-</div>
-
-### **Lists**
-
-Create bullet points:
-* Item 1
-* Item 2
-  * Nested item
-    * Nested further
-
-### **Links and Images**
-
-Add a [link](https://github.com/ThisIs-Developer/Markdown-Viewer) to important resources.
-
-Embed an image:
-![Markdown Logo](https://markdownviewer.pages.dev/assets/icon.jpg)
-
-### **Blockquotes**
-
-Quote someone famous:
-> "The best way to predict the future is to invent it." - Alan Kay
-
----
-
-## 🛡️ Security Note
-
-This is a fully client-side application. Your content never leaves your browser and stays secure on your device.`;
+  // PERF-012: Default template loaded from external file to reduce bundle size
+  let sampleMarkdown = '# Welcome to Markdown Viewer\n\nStart typing your markdown here...';
+  fetch('sample.md').then(function(r) { return r.text(); }).then(function(text) {
+    sampleMarkdown = text;
+    // Only apply if editor still has the simple fallback or is empty
+    if (!markdownEditor.value || markdownEditor.value === '# Welcome to Markdown Viewer\n\nStart typing your markdown here...') {
+      markdownEditor.value = sampleMarkdown;
+      renderMarkdown();
+    }
+  }).catch(function() { /* Use inline fallback */ });
 
   markdownEditor.value = sampleMarkdown;
 
@@ -1009,12 +885,28 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function saveTabsToStorage(tabsArr) {
+    // PERF-008: Debounce tab saves to reduce main thread blocking from JSON.stringify
+    // on large document arrays. Immediate flush happens on visibilitychange/beforeunload.
+    clearTimeout(saveTabStateTimeout);
+    saveTabStateTimeout = setTimeout(function() {
+      _flushTabsToStorage(tabsArr);
+    }, 500);
+  }
+
+  function _flushTabsToStorage(tabsArr) {
+    clearTimeout(saveTabStateTimeout);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tabsArr));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tabsArr || tabs));
     } catch (e) {
       console.warn('Failed to save tabs to localStorage:', e);
     }
   }
+
+  // Ensure tabs are persisted before page close (PERF-008)
+  window.addEventListener('beforeunload', function() { _flushTabsToStorage(tabs); });
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') _flushTabsToStorage(tabs);
+  });
 
   function loadActiveTabId() {
     return localStorage.getItem(ACTIVE_TAB_KEY);
@@ -1112,7 +1004,8 @@ This is a fully client-side application. Your content never leaves your browser 
     menuBtn.setAttribute('aria-controls', menuId);
     menuBtn.setAttribute('draggable', 'false');
     menuBtn.title = 'File options';
-    menuBtn.innerHTML = '&#8943;';
+    // PERF-007: Replace HTML entity with plain unicode character set via textContent
+    menuBtn.textContent = '⋯';
 
     const dropdown = document.createElement('div');
     dropdown.id = menuId;
@@ -1170,7 +1063,8 @@ This is a fully client-side application. Your content never leaves your browser 
     if (!tabList) return;
     closeTabMenus();
     removeTabMenuDropdowns();
-    tabList.innerHTML = '';
+    // PERF-007: Use textContent instead of innerHTML to clear elements faster
+    tabList.textContent = '';
     tabsArr.forEach(function(tab) {
       const item = document.createElement('div');
       item.className = 'tab-item' + (tab.id === currentActiveTabId ? ' active' : '');
@@ -1189,10 +1083,6 @@ This is a fully client-side application. Your content never leaves your browser 
 
       item.appendChild(titleSpan);
       item.appendChild(tabMenu.button);
-
-      item.addEventListener('click', function() {
-        switchTab(tab.id);
-      });
 
       item.addEventListener('dragstart', function() {
         draggedTabId = tab.id;
@@ -1228,6 +1118,16 @@ This is a fully client-side application. Your content never leaves your browser 
 
       tabList.appendChild(item);
     });
+
+    // PERF-006: Event delegation — single click handler for all tabs
+    tabList.onclick = function(e) {
+      const tabItem = e.target.closest('.tab-item');
+      if (!tabItem) return;
+      // Don't switch tab if clicking the menu button
+      if (e.target.closest('.tab-menu-btn')) return;
+      const tabId = tabItem.getAttribute('data-tab-id');
+      if (tabId) switchTab(tabId);
+    };
 
     // "+ Create" button at end of tab list
     const newBtn = document.createElement('button');
@@ -1296,7 +1196,8 @@ This is a fully client-side application. Your content never leaves your browser 
   function renderMobileTabList(tabsArr, currentActiveTabId) {
     const mobileTabList = document.getElementById('mobile-tab-list');
     if (!mobileTabList) return;
-    mobileTabList.innerHTML = '';
+    // PERF-007: Clear element content using textContent instead of innerHTML
+    mobileTabList.textContent = '';
     tabsArr.forEach(function(tab) {
       const item = document.createElement('div');
       item.className = 'mobile-tab-item' + (tab.id === currentActiveTabId ? ' active' : '');
@@ -1598,6 +1499,10 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function executeRender(rawVal) {
+    // PERF-003: Skip render if content hasn't changed
+    if (rawVal === _lastRenderedContent) return;
+    _lastRenderedContent = rawVal;
+
     try {
       const { frontmatter, body } = parseFrontmatter(rawVal);
       const tableHtml = frontmatter ? renderFrontmatterTable(frontmatter) : '';
@@ -1614,38 +1519,72 @@ This is a fully client-side application. Your content never leaves your browser 
 
       processEmojis(markdownPreview);
       
-      // Reinitialize mermaid with current theme before rendering diagrams
-      initMermaid();
-      
+      // PERF-002: Lazy-load mermaid only when diagrams are present
       try {
         const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
         if (mermaidNodes.length > 0) {
-          Promise.resolve(mermaid.init(undefined, mermaidNodes))
-            .then(() => {
-              markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
-                container.classList.remove('is-loading');
+          const renderMermaidNodes = function() {
+            initMermaid(false);
+            Promise.resolve(mermaid.init(undefined, mermaidNodes))
+              .then(() => {
+                markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
+                  container.classList.remove('is-loading');
+                });
+                addMermaidToolbars();
+              })
+              .catch((e) => {
+                console.warn("Mermaid rendering failed:", e);
+                markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
+                  container.classList.remove('is-loading');
+                });
+                addMermaidToolbars();
               });
-              addMermaidToolbars();
-            })
-            .catch((e) => {
-              console.warn("Mermaid rendering failed:", e);
-              markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
-                container.classList.remove('is-loading');
-              });
-              addMermaidToolbars();
-            });
+          };
+          if (typeof mermaid === 'undefined') {
+            loadScript(CDN.mermaid).then(function() {
+              initMermaid(true);
+              renderMermaidNodes();
+            }).catch(function(e) { console.warn('Failed to load mermaid:', e); });
+          } else {
+            renderMermaidNodes();
+          }
         }
       } catch (e) {
         console.warn("Mermaid rendering failed:", e);
       }
-      
-      if (window.MathJax) {
-        try {
-          MathJax.typesetPromise([markdownPreview]).catch((err) => {
-            console.warn('MathJax typesetting failed:', err);
-          });
-        } catch (e) {
-          console.warn("MathJax rendering failed:", e);
+
+      // PERF-002: Lazy-load MathJax only when math syntax is detected
+      const rawText = rawVal || '';
+      const hasMath = /\$\$|\$[^$]|\\\(|\\\[/.test(rawText);
+      if (hasMath) {
+        if (window.MathJax) {
+          try {
+            MathJax.typesetPromise([markdownPreview]).catch((err) => {
+              console.warn('MathJax typesetting failed:', err);
+            });
+          } catch (e) {
+            console.warn("MathJax rendering failed:", e);
+          }
+        } else {
+          // Configure and load MathJax on first use
+          window.MathJax = {
+            loader: { load: ['[tex]/ams', '[tex]/boldsymbol'] },
+            tex: {
+              inlineMath: [['$', '$'], ['\\(', '\\)']],
+              displayMath: [['$$', '$$'], ['\\[', '\\]']],
+              processEscapes: true,
+              packages: { '[+]': ['ams', 'boldsymbol'] }
+            }
+          };
+          loadScript(CDN.mathjax).then(function() {
+            try {
+              MathJax.typesetPromise([markdownPreview]).catch(function(err) {
+                console.warn('MathJax typesetting failed:', err);
+              });
+            } catch (e) {
+              console.warn('MathJax rendering failed:', e);
+            }
+          }).catch(function(e) { console.warn('Failed to load MathJax:', e); });
         }
       }
 
@@ -2142,6 +2081,16 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function processEmojis(element) {
+    // Early exit if the raw text content has no colon characters (PERF-013)
+    // This avoids the expensive TreeWalker DOM walk for documents without emoji shortcodes
+    if (!element.textContent || !element.textContent.includes(':')) return;
+
+    // PERF-002: Lazy-load JoyPixels on first use
+    if (typeof joypixels === 'undefined') {
+      loadScript(CDN.joypixels).then(function() { processEmojis(element); });
+      return;
+    }
+    
     const walker = document.createTreeWalker(
       element,
       NodeFilter.SHOW_TEXT,
@@ -2248,11 +2197,10 @@ This is a fully client-side application. Your content never leaves your browser 
 
   function syncEditorToPreview() {
     if (!syncScrollingEnabled || isPreviewScrolling) return;
-
     isEditorScrolling = true;
-    clearTimeout(scrollSyncTimeout);
 
-    scrollSyncTimeout = setTimeout(() => {
+    if (scrollSyncTimeout) cancelAnimationFrame(scrollSyncTimeout);
+    scrollSyncTimeout = requestAnimationFrame(function() {
       const editorScrollRatio =
         editorPane.scrollTop /
         (editorPane.scrollHeight - editorPane.clientHeight);
@@ -2264,19 +2212,18 @@ This is a fully client-side application. Your content never leaves your browser 
         previewPane.scrollTop = previewScrollPosition;
       }
 
-      setTimeout(() => {
+      setTimeout(function() {
         isEditorScrolling = false;
       }, 50);
-    }, SCROLL_SYNC_DELAY);
+    });
   }
 
   function syncPreviewToEditor() {
     if (!syncScrollingEnabled || isEditorScrolling) return;
-
     isPreviewScrolling = true;
-    clearTimeout(scrollSyncTimeout);
 
-    scrollSyncTimeout = setTimeout(() => {
+    if (scrollSyncTimeout) cancelAnimationFrame(scrollSyncTimeout);
+    scrollSyncTimeout = requestAnimationFrame(function() {
       const previewScrollRatio =
         previewPane.scrollTop /
         (previewPane.scrollHeight - previewPane.clientHeight);
@@ -2288,10 +2235,10 @@ This is a fully client-side application. Your content never leaves your browser 
         editorPane.scrollTop = editorScrollPosition;
       }
 
-      setTimeout(() => {
+      setTimeout(function() {
         isPreviewScrolling = false;
       }, 50);
-    }, SCROLL_SYNC_DELAY);
+    });
   }
 
   function toggleSyncScrolling() {
@@ -2956,7 +2903,8 @@ This is a fully client-side application. Your content never leaves your browser 
 
     searchInput.value = '';
     emojiSelection.clear();
-    grid.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    grid.textContent = '';
     grid.scrollTop = 0;
     emojiItems = [];
 
@@ -2987,7 +2935,8 @@ This is a fully client-side application. Your content never leaves your browser 
 
     function renderEmojiChunk(clear = false) {
       if (clear) {
-        grid.innerHTML = '';
+        // PERF-007: Clear elements using textContent
+        grid.textContent = '';
         emojiItems = [];
         renderedCount = 0;
       }
@@ -3099,7 +3048,8 @@ This is a fully client-side application. Your content never leaves your browser 
       if (!entries.length) {
         emptyMessage.textContent = 'Unable to load emojis.';
         emptyMessage.style.display = 'block';
-        grid.innerHTML = '';
+        // PERF-007: Clear elements using textContent
+        grid.textContent = '';
         emojiItems = [];
         announceToScreenReader("Failed to load emojis.");
         return;
@@ -3134,7 +3084,8 @@ This is a fully client-side application. Your content never leaves your browser 
     confirmBtn.disabled = true;
     searchInput.value = '';
     symbolSelection.clear();
-    grid.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    grid.textContent = '';
 
     const sectionEntries = [];
     SYMBOL_SECTIONS.forEach((section) => {
@@ -3264,7 +3215,8 @@ This is a fully client-side application. Your content never leaves your browser 
     const start = markdownEditor.selectionStart;
     const end = markdownEditor.selectionEnd;
     modal.style.display = 'flex';
-    grid.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    grid.textContent = '';
 
     const alertTypes = ['note', 'tip', 'important', 'warning', 'caution'];
     let selectedType = alertTypes[0];
@@ -3839,9 +3791,15 @@ This is a fully client-side application. Your content never leaves your browser 
       this.history = { find: [], replace: [] };
       this.activeMatches = [];
       this.currentMatchIndex = -1;
+      this._cachedScopeText = null;
+      this._cachedScopeMap = null;
     }
 
     buildASTScopeMap(text) {
+      // PERF-026: Cache scope map to avoid re-lexing on every search keystroke
+      if (text === this._cachedScopeText && this._cachedScopeMap) {
+        return this._cachedScopeMap;
+      }
       if (typeof marked === 'undefined' || !marked.lexer) return [];
       try {
         const tokens = marked.lexer(text);
@@ -3870,6 +3828,8 @@ This is a fully client-side application. Your content never leaves your browser 
         };
 
         traverse(tokens);
+        this._cachedScopeText = text;
+        this._cachedScopeMap = scopeMap;
         return scopeMap;
       } catch (e) {
         console.warn("AST scope parsing failed:", e);
@@ -4478,7 +4438,8 @@ This is a fully client-side application. Your content never leaves your browser 
 
     const draftLines = draftValue.split('\n');
 
-    container.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    container.textContent = '';
     const fragment = document.createDocumentFragment();
 
     const maxLines = Math.max(lines.length, draftLines.length);
@@ -5117,6 +5078,7 @@ This is a fully client-side application. Your content never leaves your browser 
     });
   }
   themeToggle.addEventListener("click", function () {
+    _lastRenderedContent = null;
     const theme =
       document.documentElement.getAttribute("data-theme") === "dark"
         ? "light"
@@ -5130,7 +5092,38 @@ This is a fully client-side application. Your content never leaves your browser 
       themeToggle.innerHTML = '<i class="bi bi-moon"></i>';
     }
     
-    renderMarkdown();
+    // PERF-004: Only re-render Mermaid diagrams on theme change instead of full renderMarkdown()
+    // CSS custom properties handle all other theme transitions automatically.
+    // PERF-002: Guard mermaid re-render — skip if not loaded yet
+    if (typeof mermaid !== 'undefined') {
+      initMermaid(true); // Force re-init with new theme
+      try {
+        const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
+        if (mermaidNodes.length > 0) {
+          // Clear existing rendered Mermaid SVGs and re-render with new theme
+          mermaidNodes.forEach(function(node) {
+            node.removeAttribute('data-processed');
+            const container = node.closest('.mermaid-container');
+            if (container) container.classList.add('is-loading');
+          });
+          Promise.resolve(mermaid.init(undefined, mermaidNodes))
+            .then(function() {
+              markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
+                c.classList.remove('is-loading');
+              });
+              addMermaidToolbars();
+            })
+            .catch(function(e) {
+              console.warn('Mermaid theme re-render failed:', e);
+              markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
+                c.classList.remove('is-loading');
+              });
+            });
+        }
+      } catch (e) {
+        console.warn('Mermaid theme re-render failed:', e);
+      }
+    }
   });
 
   async function nativeSaveMarkdown() {
@@ -5935,6 +5928,20 @@ This is a fully client-side application. Your content never leaves your browser 
   // ============================================
 
   exportPdf.addEventListener("click", async function () {
+    // PERF-002: Lazy-load PDF libraries on first export
+    if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
+      exportPdf.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
+      exportPdf.disabled = true;
+      try {
+        await Promise.all([loadScript(CDN.jspdf), loadScript(CDN.html2canvas)]);
+      } catch (e) {
+        console.error('Failed to load PDF libraries:', e);
+        alert('Failed to load PDF export libraries. Please check your internet connection.');
+        exportPdf.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Export';
+        exportPdf.disabled = false;
+        return;
+      }
+    }
     try {
       const originalText = exportPdf.innerHTML;
       exportPdf.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
@@ -6153,6 +6160,7 @@ This is a fully client-side application. Your content never leaves your browser 
   const MAX_SHARE_URL_LENGTH = 32000;
 
   function encodeMarkdownForShare(text) {
+    if (typeof pako === 'undefined') throw new Error('pako not loaded');
     const compressed = pako.deflate(new TextEncoder().encode(text));
     const chunkSize = 0x8000;
     let binary = '';
@@ -6163,6 +6171,7 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function decodeMarkdownFromShare(encoded) {
+    if (typeof pako === 'undefined') throw new Error('pako not loaded');
     const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
     const binary = atob(base64);
     const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
@@ -6223,6 +6232,16 @@ This is a fully client-side application. Your content never leaves your browser 
   }
 
   function openShareModal() {
+    // PERF-002: Lazy-load pako on first share
+    if (typeof pako === 'undefined') {
+      loadScript(CDN.pako).then(function() {
+        openShareModal();
+      }).catch(function(e) {
+        console.error('Failed to load pako:', e);
+        alert('Failed to load sharing library. Please check your internet connection.');
+      });
+      return;
+    }
     // Reset to view-only by default each time
     shareModeView.checked = true;
     syncShareCardStyles();
@@ -6333,7 +6352,17 @@ This is a fully client-side application. Your content never leaves your browser 
   mobileShareButton.addEventListener('click', openShareModal);
 
   function loadFromShareHash() {
-    if (typeof pako === 'undefined') return;
+    // PERF-002: Lazy-load pako when loading shared URL content
+    if (typeof pako === 'undefined') {
+      const hash = window.location.hash;
+      if (!hash.startsWith('#share=')) return;
+      loadScript(CDN.pako).then(function() {
+        loadFromShareHash();
+      }).catch(function(e) {
+        console.error('Failed to load pako for shared URL:', e);
+      });
+      return;
+    }
     const hash = window.location.hash;
     if (!hash.startsWith('#share=')) return;
 
@@ -6594,7 +6623,8 @@ This is a fully client-side application. Your content never leaves your browser 
   function closeMermaidModal() {
     if (!mermaidZoomModal.classList.contains('active')) return;
     mermaidZoomModal.classList.remove('active');
-    mermaidModalDiagram.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    mermaidModalDiagram.textContent = '';
     modalCurrentSvgEl = null;
     modalZoomScale = 1;
     modalPanX = 0;
@@ -6606,7 +6636,8 @@ This is a fully client-side application. Your content never leaves your browser 
     const svgEl = container.querySelector('svg');
     if (!svgEl) return;
 
-    mermaidModalDiagram.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    mermaidModalDiagram.textContent = '';
     modalZoomScale = 1;
     modalPanX = 0;
     modalPanY = 0;
@@ -7211,7 +7242,8 @@ This is a fully client-side application. Your content never leaves your browser 
   function renderEmojiSkeletons() {
     const grid = document.getElementById('emoji-modal-grid');
     if (!grid) return;
-    grid.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    grid.textContent = '';
     const fragment = document.createDocumentFragment();
     for (let i = 0; i < 18; i++) {
       const item = document.createElement('div');
@@ -7245,7 +7277,8 @@ This is a fully client-side application. Your content never leaves your browser 
   // Visual skeleton loader generator for GitHub file list tree
   function renderGitHubImportTreeSkeleton() {
     if (!githubImportTree) return;
-    githubImportTree.innerHTML = '';
+    // PERF-007: Clear elements using textContent
+    githubImportTree.textContent = '';
     
     const wrapper = document.createElement('div');
     wrapper.className = 'github-import-tree-skeleton';
