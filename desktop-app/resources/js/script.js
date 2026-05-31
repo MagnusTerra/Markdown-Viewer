@@ -866,7 +866,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // PERF-012: Inlined default template to eliminate network request, FOUC, and layout shifts
   const defaultMarkdownTemplate = document.getElementById('default-markdown');
-  const sampleMarkdown = defaultMarkdownTemplate ? defaultMarkdownTemplate.textContent.trim() : '# Welcome to Markdown Viewer\n\nStart typing your markdown here...';
+  const sampleMarkdown = defaultMarkdownTemplate && defaultMarkdownTemplate.content ? defaultMarkdownTemplate.content.textContent.trim() : '# Welcome to Markdown Viewer\n\nStart typing your markdown here...';
 
   if (!markdownEditor.value) {
     markdownEditor.value = sampleMarkdown;
