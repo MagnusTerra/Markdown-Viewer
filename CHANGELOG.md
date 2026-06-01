@@ -3,6 +3,18 @@
 All notable code changes to **Markdown Viewer** are documented here.
 Non-code commits (documentation, planning, README-only updates) are excluded.
 
+## v3.7.1
+
+- **Description:** Scoped performance optimizations, accessibility remediation, onboarding template stabilization, and library upgrades.
+  - **Performance & Reflows:** Scoped in-memory caching to editor geometry and gutter layouts to eliminate forced synchronous reflows; debounced resize layout listeners and deferred non-critical startup initializations to accelerate page load and cut Total Blocking Time (TBT).
+  - **Accessibility (a11y):** Resolved multiple Lighthouse accessibility violations; fixed line-number contrast ratios for both light and dark themes; increased touch target sizes conforming to WCAG AA guidelines.
+  - **Onboarding & Templating:** Stabilized the onboarding template initialization (resolving `BUG-ONBOARD-001`); inlined the default welcome markdown; and migrated it to a `<script type="text/markdown">` container to seamlessly preserve raw HTML tags in default content without parser interference.
+  - **Library Upgrades:** Upgraded the embedded Mermaid.js diagrams rendering library to the latest version, enhancing visual layouts and rendering stability.
+- **Date:** 2026-06-01
+- **URL:** https://github.com/ThisIs-Developer/Markdown-Viewer/commit/e9fef8adfa8201661ee4af18c22f941496e5308b
+
+---
+
 ## v3.7.0
 
 - **Description:** Complete architectural performance engineering transformation and application modernization.

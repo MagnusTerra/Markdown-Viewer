@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // CDN URLs for lazy-loaded libraries
   const CDN = {
-    mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js',
+    mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js',
     mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js',
     jspdf: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode State - Story 1.1
   let currentViewMode = 'split'; // 'editor', 'split', or 'preview'
-  const APP_VERSION = '3.7.0';
+  const APP_VERSION = '3.7.1';
   let activeModal = null;
   let lastFocusedElement = null;
   let isFindModalOpen = false;
