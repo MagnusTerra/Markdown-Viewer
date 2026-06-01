@@ -5073,11 +5073,16 @@ document.addEventListener("DOMContentLoaded", function () {
   
   initTabs();
   if (loadGlobalState().syncScrollingEnabled === false) toggleSyncScrolling();
-  initEditorGeometry();
-  refreshEditorWidth();
   updateMobileStats();
   updateFindHighlights();
   syncHighlightScroll();
+
+  // Defer DOM geometry measurement until after FCP/LCP critical paint path
+  setTimeout(function() {
+    initEditorGeometry();
+    refreshEditorWidth();
+    scheduleLineNumberUpdate();
+  }, 100);
 
   // Initialize resizer - Story 1.3
   initResizer();
@@ -5105,14 +5110,18 @@ document.addEventListener("DOMContentLoaded", function () {
     lastFloatingTop = constrainedTop;
   }
 
+  let resizeLayoutTimeout = null;
   window.addEventListener('resize', () => {
-    initEditorGeometry();
-    refreshEditorWidth();
-    scheduleLineNumberUpdate();
-    if (window.innerWidth < 1080 && isFrDocked && isFindModalOpen) {
-      toggleFrDockMode(true);
-    }
-    constrainFloatingPanelPosition();
+    clearTimeout(resizeLayoutTimeout);
+    resizeLayoutTimeout = setTimeout(function() {
+      initEditorGeometry();
+      refreshEditorWidth();
+      scheduleLineNumberUpdate();
+      if (window.innerWidth < 1080 && isFrDocked && isFindModalOpen) {
+        toggleFrDockMode(true);
+      }
+      constrainFloatingPanelPosition();
+    }, 100);
   });
 
   // View Mode Button Event Listeners - Story 1.1
