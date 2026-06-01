@@ -307,7 +307,7 @@
           <div class="markdown-toolbar-group">
             <button type="button" class="markdown-tool-btn" data-md-action="undo" title="Undo" aria-label="Undo"><i class="bi bi-arrow-counterclockwise"></i></button>
             <button type="button" class="markdown-tool-btn" data-md-action="redo" title="Redo" aria-label="Redo"><i class="bi bi-arrow-clockwise"></i></button>
-            <button type="button" class="markdown-tool-btn" data-md-action="clear-formatting" title="Clear Markdown formatting" aria-label="Clear Markdown formatting"><i class="bi bi-eraser"></i></button>
+            <button type="button" class="markdown-tool-btn" data-md-action="clear-formatting" title="Clear document" aria-label="Clear document"><i class="bi bi-eraser"></i></button>
           </div>
           <div class="markdown-toolbar-group">
             <button type="button" class="markdown-tool-btn" data-md-action="bold" title="Bold" aria-label="Bold"><i class="bi bi-type-bold"></i></button>
@@ -373,15 +373,15 @@
         <div id="clear-formatting-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="clear-formatting-title" aria-hidden="true" style="display:none;">
           <div class="reset-modal-box reset-modal-box--wide modal-box">
             <div class="modal-header">
-              <p id="clear-formatting-title" class="reset-modal-message">Clear Markdown formatting?</p>
-              <button type="button" class="modal-close-btn" id="clear-formatting-close" aria-label="Close clear formatting dialog">
+              <p id="clear-formatting-title" class="reset-modal-message">Clear active document?</p>
+              <button type="button" class="modal-close-btn" id="clear-formatting-close" aria-label="Close clear document dialog">
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
-            <p class="modal-subtext">Only the Markdown formatting in this document content is cleared. The file itself is not deleted.</p>
+            <p class="modal-subtext">Are you sure you want to clear the content of the active document? The document itself will not be deleted.</p>
             <div class="reset-modal-actions">
               <button class="reset-modal-btn reset-modal-cancel" id="clear-formatting-cancel">Cancel</button>
-              <button class="reset-modal-btn reset-modal-confirm" id="clear-formatting-confirm">Clear Markdown</button>
+              <button class="reset-modal-btn reset-modal-confirm" id="clear-formatting-confirm">Clear Document</button>
             </div>
           </div>
         </div>

@@ -693,6 +693,13 @@ body {
   background-color: var(--button-active);
 }
 
+.markdown-tool-btn:disabled,
+.markdown-tool-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .markdown-tool-btn i {
   font-size: 15px;
 }
