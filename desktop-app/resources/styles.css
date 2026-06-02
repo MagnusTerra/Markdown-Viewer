@@ -3633,8 +3633,21 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
   animation: skeleton-shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Smooth fade transitions for Mermaid theme switching */
+.mermaid-container .mermaid {
+  transition: opacity 0.2s ease-in-out;
+  opacity: 1;
+}
+
+.mermaid-container.theme-switching .mermaid {
+  opacity: 0 !important;
+}
+
 /* Accessibility: respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
+  .mermaid-container .mermaid {
+    transition: none;
+  }
   .skeleton-placeholder,
   .skeleton-placeholder::after,
   .mermaid-container.is-loading,

@@ -5529,15 +5529,27 @@ document.addEventListener("DOMContentLoaded", function () {
     // CSS custom properties handle all other theme transitions automatically.
     // PERF-002: Guard mermaid re-render — skip if not loaded yet
     if (typeof mermaid !== 'undefined') {
+      const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
+      if (mermaidNodes.length > 0) {
+        // Smoothly fade out all diagrams before starting the re-render process
+        mermaidNodes.forEach(function(node) {
+          const container = node.closest('.mermaid-container');
+          if (container) {
+            container.classList.add('theme-switching');
+          }
+        });
+      }
+
       if (_mermaidThemeReinitTimeout) {
         clearTimeout(_mermaidThemeReinitTimeout);
       }
+      
+      // Wait 200ms for the fade-out animation to complete, then re-render in the background
       _mermaidThemeReinitTimeout = setTimeout(function() {
         initMermaid(true); // Force re-init with new theme
         try {
-          const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
           if (mermaidNodes.length > 0) {
-            // Clear existing rendered Mermaid SVGs and re-render with new theme
+            // Restore original diagram code to prevent parsing already-rendered SVG as source
             mermaidNodes.forEach(function(node) {
               const originalCode = node.getAttribute('data-original-code');
               if (originalCode) {
@@ -5551,29 +5563,32 @@ document.addEventListener("DOMContentLoaded", function () {
               node.removeAttribute('data-processed');
               const container = node.closest('.mermaid-container');
               if (container) {
-                container.classList.add('is-loading');
                 const oldToolbar = container.querySelector('.mermaid-toolbar');
                 if (oldToolbar) oldToolbar.remove();
               }
             });
             Promise.resolve(mermaid.init(undefined, mermaidNodes))
               .then(function() {
-                markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
-                  c.classList.remove('is-loading');
+                // Smoothly fade the new diagrams back in
+                markdownPreview.querySelectorAll('.mermaid-container.theme-switching').forEach(function(c) {
+                  c.classList.remove('theme-switching');
                 });
                 addMermaidToolbars();
               })
               .catch(function(e) {
                 console.warn('Mermaid theme re-render failed:', e);
-                markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
-                  c.classList.remove('is-loading');
+                markdownPreview.querySelectorAll('.mermaid-container.theme-switching').forEach(function(c) {
+                  c.classList.remove('theme-switching');
                 });
               });
           }
         } catch (e) {
           console.warn('Mermaid theme re-render failed:', e);
+          markdownPreview.querySelectorAll('.mermaid-container.theme-switching').forEach(function(c) {
+            c.classList.remove('theme-switching');
+          });
         }
-      }, 150);
+      }, 200); // 200ms delay perfectly aligns with our CSS fade transition!
     }
   });
 
