@@ -3633,9 +3633,15 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
   animation: skeleton-shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Full-page unified theme transition */
+html.theme-transitioning,
+html.theme-transitioning * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease, stroke 0.3s ease, box-shadow 0.3s ease !important;
+}
+
 /* Smooth fade transitions for Mermaid theme switching */
 .mermaid-container .mermaid {
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 0.15s ease-in-out;
   opacity: 1;
 }
 
@@ -3645,6 +3651,10 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
 
 /* Accessibility: respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning,
+  html.theme-transitioning * {
+    transition: none !important;
+  }
   .mermaid-container .mermaid {
     transition: none;
   }
