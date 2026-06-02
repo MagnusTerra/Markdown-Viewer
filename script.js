@@ -286,6 +286,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Track last Mermaid theme to avoid redundant re-initialization (PERF-005)
   let _lastMermaidTheme = null;
+  let _mermaidThemeReinitTimeout = null;
   const initMermaid = (forceReinit) => {
     if (typeof mermaid === 'undefined') return; // PERF-002: Not loaded yet
     const currentTheme = document.documentElement.getAttribute("data-theme");
@@ -5528,46 +5529,51 @@ document.addEventListener("DOMContentLoaded", function () {
     // CSS custom properties handle all other theme transitions automatically.
     // PERF-002: Guard mermaid re-render — skip if not loaded yet
     if (typeof mermaid !== 'undefined') {
-      initMermaid(true); // Force re-init with new theme
-      try {
-        const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
-        if (mermaidNodes.length > 0) {
-          // Clear existing rendered Mermaid SVGs and re-render with new theme
-          mermaidNodes.forEach(function(node) {
-            const originalCode = node.getAttribute('data-original-code');
-            if (originalCode) {
-              const decodedCode = decodeURIComponent(originalCode);
-              const escapedCode = decodedCode
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-              node.innerHTML = escapedCode;
-            }
-            node.removeAttribute('data-processed');
-            const container = node.closest('.mermaid-container');
-            if (container) {
-              container.classList.add('is-loading');
-              const oldToolbar = container.querySelector('.mermaid-toolbar');
-              if (oldToolbar) oldToolbar.remove();
-            }
-          });
-          Promise.resolve(mermaid.init(undefined, mermaidNodes))
-            .then(function() {
-              markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
-                c.classList.remove('is-loading');
-              });
-              addMermaidToolbars();
-            })
-            .catch(function(e) {
-              console.warn('Mermaid theme re-render failed:', e);
-              markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
-                c.classList.remove('is-loading');
-              });
-            });
-        }
-      } catch (e) {
-        console.warn('Mermaid theme re-render failed:', e);
+      if (_mermaidThemeReinitTimeout) {
+        clearTimeout(_mermaidThemeReinitTimeout);
       }
+      _mermaidThemeReinitTimeout = setTimeout(function() {
+        initMermaid(true); // Force re-init with new theme
+        try {
+          const mermaidNodes = markdownPreview.querySelectorAll('.mermaid');
+          if (mermaidNodes.length > 0) {
+            // Clear existing rendered Mermaid SVGs and re-render with new theme
+            mermaidNodes.forEach(function(node) {
+              const originalCode = node.getAttribute('data-original-code');
+              if (originalCode) {
+                const decodedCode = decodeURIComponent(originalCode);
+                const escapedCode = decodedCode
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+                node.innerHTML = escapedCode;
+              }
+              node.removeAttribute('data-processed');
+              const container = node.closest('.mermaid-container');
+              if (container) {
+                container.classList.add('is-loading');
+                const oldToolbar = container.querySelector('.mermaid-toolbar');
+                if (oldToolbar) oldToolbar.remove();
+              }
+            });
+            Promise.resolve(mermaid.init(undefined, mermaidNodes))
+              .then(function() {
+                markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
+                  c.classList.remove('is-loading');
+                });
+                addMermaidToolbars();
+              })
+              .catch(function(e) {
+                console.warn('Mermaid theme re-render failed:', e);
+                markdownPreview.querySelectorAll('.mermaid-container.is-loading').forEach(function(c) {
+                  c.classList.remove('is-loading');
+                });
+              });
+          }
+        } catch (e) {
+          console.warn('Mermaid theme re-render failed:', e);
+        }
+      }, 150);
     }
   });
 
