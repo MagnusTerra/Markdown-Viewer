@@ -1831,23 +1831,29 @@ a:focus {
 .tab-new-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 24px;
+  gap: 4px;
   height: 24px;
+  padding: 0 8px;
   border-radius: 5px;
   background: none;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-color);
   color: var(--text-color);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 12px;
   flex-shrink: 0;
-  margin-left: 4px;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  margin-left: 6px;
+  align-self: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .tab-new-btn:hover {
-  background-color: var(--button-hover);
-  border-color: var(--border-color);
+  background-color: rgba(46, 160, 67, 0.1);
+  border-color: var(--accent-color, #2ea043);
+  color: var(--accent-color, #2ea043);
+}
+
+.tab-new-btn:active {
+  background-color: rgba(46, 160, 67, 0.2);
 }
 
 /* Drag-and-drop visual feedback */
@@ -1878,6 +1884,83 @@ a:focus {
   .tab-bar {
     display: none;
   }
+}
+
+/* ========================================
+   TAB OVERFLOW — Scroll Buttons & Fade Indicators
+   ======================================== */
+
+.tab-scroll-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-color);
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  z-index: 2;
+  opacity: 0.6;
+}
+
+.tab-scroll-btn:hover {
+  background-color: var(--button-hover);
+  border-color: var(--border-color);
+  opacity: 1;
+}
+
+.tab-scroll-btn:active {
+  background-color: var(--button-active);
+}
+
+/* Show scroll buttons only when overflow exists */
+.tab-bar.has-overflow-left .tab-scroll-left,
+.tab-bar.has-overflow-right .tab-scroll-right {
+  display: flex;
+}
+
+/* Overflow fade indicators — subtle gradient at clipped edges */
+.tab-list::before,
+.tab-list::after {
+  content: '';
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  flex-shrink: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: box-shadow 0.2s ease;
+}
+
+.tab-list::before {
+  left: 0;
+}
+
+.tab-list::after {
+  right: 0;
+}
+
+.tab-bar.has-overflow-left .tab-list::before {
+  box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.12);
+}
+
+.tab-bar.has-overflow-right .tab-list::after {
+  box-shadow: -8px 0 12px -4px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .tab-bar.has-overflow-left .tab-list::before {
+  box-shadow: 8px 0 12px -4px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .tab-bar.has-overflow-right .tab-list::after {
+  box-shadow: -8px 0 12px -4px rgba(0, 0, 0, 0.35);
 }
 
 /* ========================================
@@ -1927,7 +2010,13 @@ a:focus {
     padding: 0 10px 0 12px !important;
     gap: 8px !important;
   }
-  .tab-new-btn {
+  .tab-new-btn,
+  .tab-reset-btn {
+    height: 32px !important;
+    font-size: 14px !important;
+    padding: 0 12px !important;
+  }
+  .tab-scroll-btn {
     width: 32px !important;
     height: 32px !important;
     font-size: 18px !important;

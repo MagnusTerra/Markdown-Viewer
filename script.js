@@ -1151,23 +1151,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (tabId) switchTab(tabId);
     };
 
-    // "+ Create" button at end of tab list (placed outside tabList to prevent ARIA child violation)
-    let newBtn = tabList.parentElement.querySelector('.tab-new-btn');
-    if (!newBtn) {
-      newBtn = document.createElement('button');
-      newBtn.className = 'tab-new-btn';
-      newBtn.title = 'New Tab (Ctrl+T)';
-      newBtn.setAttribute('aria-label', 'Open new tab');
-      newBtn.innerHTML = '<i class="bi bi-plus-lg"></i>';
-      newBtn.addEventListener('click', function() { newTab(); });
-      
-      const resetBtn = document.getElementById('tab-reset-btn');
-      if (resetBtn) {
-        tabList.parentElement.insertBefore(newBtn, resetBtn);
-      } else {
-        tabList.parentElement.appendChild(newBtn);
-      }
-    }
 
     // Auto-scroll active tab into view (paint-aligned to prevent forced reflows)
     const activeItem = tabList.querySelector('.tab-item.active');
@@ -1224,6 +1207,91 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     renderMobileTabList(tabsArr, currentActiveTabId);
+    if (typeof tabList.dispatchEvent === 'function') {
+      tabList.dispatchEvent(new Event('scroll'));
+    }
+  }
+
+  // ========================================
+  // TAB OVERFLOW — Scroll Buttons, Wheel, Indicators
+  // ========================================
+
+  var _tabOverflowInitialized = false;
+
+  function setupTabOverflow() {
+    if (_tabOverflowInitialized) return;
+    _tabOverflowInitialized = true;
+
+    var tabBar = document.getElementById('tab-bar');
+    var tabList = document.getElementById('tab-list');
+    if (!tabBar || !tabList) return;
+
+    // --- Create scroll arrow buttons ---
+    var scrollLeftBtn = document.createElement('button');
+    scrollLeftBtn.className = 'tab-scroll-btn tab-scroll-left';
+    scrollLeftBtn.setAttribute('aria-label', 'Scroll tabs left');
+    scrollLeftBtn.title = 'Scroll left';
+    scrollLeftBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+    scrollLeftBtn.addEventListener('click', function() {
+      tabList.scrollBy({ left: -200, behavior: 'smooth' });
+    });
+
+    var scrollRightBtn = document.createElement('button');
+    scrollRightBtn.className = 'tab-scroll-btn tab-scroll-right';
+    scrollRightBtn.setAttribute('aria-label', 'Scroll tabs right');
+    scrollRightBtn.title = 'Scroll right';
+    scrollRightBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+    scrollRightBtn.addEventListener('click', function() {
+      tabList.scrollBy({ left: 200, behavior: 'smooth' });
+    });
+
+    // Insert scroll buttons flanking the tab-list
+    tabBar.insertBefore(scrollLeftBtn, tabList);
+    var newBtn = document.getElementById('tab-new-btn');
+    if (newBtn) {
+      tabBar.insertBefore(scrollRightBtn, newBtn);
+    } else {
+      var resetBtn = document.getElementById('tab-reset-btn');
+      if (resetBtn) {
+        tabBar.insertBefore(scrollRightBtn, resetBtn);
+      } else {
+        tabBar.appendChild(scrollRightBtn);
+      }
+    }
+
+    // --- Overflow detection ---
+    var _overflowRafId = null;
+    function updateOverflowState() {
+      if (_overflowRafId) return;
+      _overflowRafId = requestAnimationFrame(function() {
+        _overflowRafId = null;
+        var hasLeft = tabList.scrollLeft > 1;
+        var hasRight = tabList.scrollLeft < (tabList.scrollWidth - tabList.clientWidth - 1);
+        tabBar.classList.toggle('has-overflow-left', hasLeft);
+        tabBar.classList.toggle('has-overflow-right', hasRight);
+      });
+    }
+
+    tabList.addEventListener('scroll', updateOverflowState);
+
+    // Use ResizeObserver to detect when overflow state changes due to window resize
+    if (typeof ResizeObserver !== 'undefined') {
+      var resizeObs = new ResizeObserver(updateOverflowState);
+      resizeObs.observe(tabList);
+    }
+
+    // Initial check
+    updateOverflowState();
+
+    // --- Mouse wheel scroll: vertical wheel → horizontal scroll ---
+    tabList.addEventListener('wheel', function(e) {
+      // Only intercept vertical wheel (don't fight native horizontal wheel/trackpad)
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        tabList.scrollLeft += e.deltaY;
+        updateOverflowState();
+      }
+    }, { passive: false });
   }
 
   function renderMobileTabList(tabsArr, currentActiveTabId) {
@@ -1510,6 +1578,14 @@ document.addEventListener("DOMContentLoaded", function () {
       markdownEditor.scrollTop = activeTab.scrollPos || 0;
     });
     renderTabBar(tabs, activeTabId);
+    setupTabOverflow();
+
+    const staticNewBtn = document.getElementById('tab-new-btn');
+    if (staticNewBtn) {
+      staticNewBtn.onclick = function() {
+        newTab();
+      };
+    }
   }
 
   // Late-load callback hook for Neutralino command-line files
