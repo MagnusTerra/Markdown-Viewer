@@ -2788,7 +2788,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const currentValue = markdownEditor.value;
     if (currentValue === lastPushedValue) return;
     
-    const inputType = e ? e.inputType : '';
+    const inputType = e && typeof e.inputType === 'string' ? e.inputType : '';
     
     if (!pendingState) {
       pendingState = {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'markdown-viewer-cache-v3.7.2';
+const CACHE_NAME = 'markdown-viewer-cache-v3.7.3';
 
 // PERF-011: Split precache into critical (local files) and lazy (CDN libraries)
 // Critical assets are precached during SW install for instant offline startup
@@ -18,6 +18,14 @@ const CDN_ORIGINS = [
   'cdnjs.cloudflare.com',
   'cdn.jsdelivr.net'
 ];
+
+const NETWORK_FIRST_LOCAL_PATHS = new Set([
+  '/',
+  '/index.html',
+  '/script.js',
+  '/styles.css',
+  '/sw.js'
+]);
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -45,7 +53,25 @@ self.addEventListener('fetch', event => {
   const isCDN = CDN_ORIGINS.some(origin => url.hostname.includes(origin));
 
   if (isLocal) {
-    // Stale-While-Revalidate strategy for local code assets
+    const localPath = url.pathname.endsWith('/') ? '/' : url.pathname;
+    const shouldUseNetworkFirst =
+      event.request.mode === 'navigate' || NETWORK_FIRST_LOCAL_PATHS.has(localPath);
+
+    if (shouldUseNetworkFirst) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then(cache => {
+          return fetch(event.request).then(networkResponse => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => cache.match(event.request));
+        })
+      );
+      return;
+    }
+
+    // Stale-While-Revalidate strategy for non-code local assets
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
         return cache.match(event.request).then(cachedResponse => {
