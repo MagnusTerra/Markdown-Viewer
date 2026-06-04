@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode State - Story 1.1
   let currentViewMode = 'split'; // 'editor', 'split', or 'preview'
-  const APP_VERSION = '3.7.2';
+  const APP_VERSION = '3.7.5';
   let activeModal = null;
   let lastFocusedElement = null;
   let isFindModalOpen = false;
@@ -1697,8 +1697,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const rawText = rawVal || '';
       const hasMath = /\$\$|\$[^$]|\\\(|\\\[/.test(rawText);
       if (hasMath) {
-        if (window.MathJax) {
-          try {
+        const typesetMath = () => {
+          if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
             MathJax.typesetPromise([markdownPreview]).then(function() {
               markdownPreview.querySelectorAll('mjx-container[tabindex="0"]').forEach(function(mjx) {
                 mjx.removeAttribute('tabindex');
@@ -1706,8 +1706,25 @@ document.addEventListener("DOMContentLoaded", function () {
             }).catch(function(err) {
               console.warn('MathJax typesetting failed:', err);
             });
-          } catch (e) {
-            console.warn("MathJax rendering failed:", e);
+          }
+        };
+
+        if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+          typesetMath();
+        } else if (window.MathJax) {
+          if (window.MathJax.startup && window.MathJax.startup.promise) {
+            window.MathJax.startup.promise.then(typesetMath).catch(e => console.warn(e));
+          } else {
+            let retries = 0;
+            const checkReady = () => {
+              if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                typesetMath();
+              } else if (retries < 20) {
+                retries++;
+                setTimeout(checkReady, 100);
+              }
+            };
+            checkReady();
           }
         } else {
           // Configure and load MathJax on first use
@@ -1721,19 +1738,28 @@ document.addEventListener("DOMContentLoaded", function () {
               displayMath: [['$$', '$$'], ['\\[', '\\]']],
               processEscapes: true,
               packages: { '[+]': ['ams', 'boldsymbol'] }
+            },
+            startup: {
+              ready: () => {
+                MathJax.startup.defaultReady();
+                MathJax.startup.promise.then(typesetMath).catch(e => console.warn(e));
+              }
             }
           };
           loadScript(CDN.mathjax).then(function() {
-            try {
-              MathJax.typesetPromise([markdownPreview]).then(function() {
-                markdownPreview.querySelectorAll('mjx-container[tabindex="0"]').forEach(function(mjx) {
-                  mjx.removeAttribute('tabindex');
-                });
-              }).catch(function(err) {
-                console.warn('MathJax typesetting failed:', err);
-              });
-            } catch (e) {
-              console.warn('MathJax rendering failed:', e);
+            if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+              window.MathJax.startup.promise.then(typesetMath).catch(e => console.warn(e));
+            } else {
+              let retries = 0;
+              const checkReady = () => {
+                if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                  typesetMath();
+                } else if (retries < 20) {
+                  retries++;
+                  setTimeout(checkReady, 100);
+                }
+              };
+              checkReady();
             }
           }).catch(function(e) { console.warn('Failed to load MathJax:', e); });
         }
@@ -6466,12 +6492,16 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
     }
+    let tempElement = null;
+    let progressContainer = null;
+    const originalOverflow = document.body.style.overflow;
     try {
       const originalText = exportPdf.innerHTML;
       exportPdf.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
       exportPdf.disabled = true;
+      document.body.style.overflow = "hidden";
 
-      const progressContainer = document.createElement('div');
+      progressContainer = document.createElement('div');
       progressContainer.style.position = 'fixed';
       progressContainer.style.top = '50%';
       progressContainer.style.left = '50%';
@@ -6495,7 +6525,7 @@ document.addEventListener("DOMContentLoaded", function () {
         ADD_ATTR: ['id', 'class', 'style', 'align', 'viewBox', 'd', 'fill', 'stroke', 'transform', 'marker-end', 'marker-start', 'type', 'checked', 'disabled', 'data-original-code']
       });
 
-      const tempElement = document.createElement("div");
+      tempElement = document.createElement("div");
       tempElement.className = "markdown-body pdf-export";
       tempElement.innerHTML = sanitizedHtml;
       enhanceGitHubAlerts(tempElement);
@@ -6503,9 +6533,11 @@ document.addEventListener("DOMContentLoaded", function () {
       tempElement.style.width = "210mm";
       tempElement.style.margin = "0 auto";
       tempElement.style.fontSize = "14px";
-      tempElement.style.position = "fixed";
-      tempElement.style.left = "-9999px";
+      tempElement.style.position = "absolute";
+      tempElement.style.left = "0";
       tempElement.style.top = "0";
+      tempElement.style.zIndex = "-9999";
+      tempElement.style.visibility = "visible";
 
       const currentTheme = document.documentElement.getAttribute("data-theme");
       tempElement.style.backgroundColor = currentTheme === "dark" ? "#0d1117" : "#ffffff";
@@ -6520,11 +6552,15 @@ document.addEventListener("DOMContentLoaded", function () {
           nodes: tempElement.querySelectorAll('.mermaid'),
           suppressErrors: true
         });
+        // Remove loading state class so diagrams are visible (have opacity: 1)
+        tempElement.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
+          container.classList.remove('is-loading');
+        });
       } catch (mermaidError) {
         console.warn("Mermaid rendering issue:", mermaidError);
       }
 
-      if (window.MathJax) {
+      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
         try {
           await MathJax.typesetPromise([tempElement]);
         } catch (mathJaxError) {
@@ -6609,10 +6645,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
       statusText.textContent = 'Download successful!';
       setTimeout(() => {
-        document.body.removeChild(progressContainer);
+        if (progressContainer && progressContainer.parentNode) {
+          document.body.removeChild(progressContainer);
+        }
       }, 1500);
 
-      document.body.removeChild(tempElement);
+      if (tempElement && tempElement.parentNode) {
+        document.body.removeChild(tempElement);
+      }
+      document.body.style.overflow = originalOverflow;
       exportPdf.innerHTML = originalText;
       exportPdf.disabled = false;
 
@@ -6622,8 +6663,12 @@ document.addEventListener("DOMContentLoaded", function () {
       exportPdf.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Export';
       exportPdf.disabled = false;
 
-      const progressContainer = document.querySelector('div[style*="Preparing PDF"]');
-      if (progressContainer) {
+      if (tempElement && tempElement.parentNode) {
+        document.body.removeChild(tempElement);
+      }
+      document.body.style.overflow = originalOverflow;
+
+      if (progressContainer && progressContainer.parentNode) {
         document.body.removeChild(progressContainer);
       }
     }
