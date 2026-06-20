@@ -11,10 +11,17 @@ COPY robots.txt /usr/share/nginx/html/
 COPY sitemap.xml /usr/share/nginx/html/
 COPY assets/icon.jpg /usr/share/nginx/html/assets/
 
-# Create a custom nginx configuration with compression and security
+# Define default environment variables (overridden in Railway)
+ENV PORT=80
+ENV BACKEND_URL=http://pdf-service:8000
+
+# Create Nginx templates directory
+RUN mkdir -p /etc/nginx/templates
+
+# Create a custom nginx configuration template with compression, security, and reverse proxy
 # PERF-020: Added gzip compression for text-based assets
 RUN echo 'server { \
-    listen 80; \
+    listen ${PORT}; \
     server_name localhost; \
     root /usr/share/nginx/html; \
     index index.html; \
@@ -30,6 +37,16 @@ RUN echo 'server { \
     # Handle client-side routing for SPA \
     location / { \
     try_files $uri $uri/ /index.html; \
+    } \
+    \
+    # Proxy /api/ to the backend service \
+    location /api/ { \
+        proxy_pass ${BACKEND_URL}/api/; \
+        proxy_http_version 1.1; \
+        proxy_set_header Upgrade $http_upgrade; \
+        proxy_set_header Connection '"'"'upgrade'"'"'; \
+        proxy_set_header Host $host; \
+        proxy_cache_bypass $http_upgrade; \
     } \
     \
     # Cache static assets config \
@@ -52,7 +69,7 @@ RUN echo 'server { \
     add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
     # PERF-029: Content Security Policy for defense-in-depth \
     add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; style-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' https: data: blob:; font-src '"'"'self'"'"' cdn.jsdelivr.net; connect-src '"'"'self'"'"' api.github.com raw.githubusercontent.com http://localhost:8000 cdnjs.cloudflare.com cdn.jsdelivr.net;" always; \
-    }' > /etc/nginx/conf.d/default.conf
+    }' > /etc/nginx/templates/default.conf.template
 
 # Limit worker processes to 1 to prevent resource exhaustion on cloud hosts (e.g. Railway)
 RUN sed -i 's/worker_processes.*/worker_processes 1;/g' /etc/nginx/nginx.conf

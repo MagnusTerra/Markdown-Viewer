@@ -6590,11 +6590,24 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  const getBackendUrl = () => {
+    // If the frontend is served on port 8080 (our Nginx container) or any non-localhost domain,
+    // we use relative paths (delegating to Nginx's reverse proxy).
+    // If the frontend is run via a basic dev live-server (e.g., port 5500, or directly via file://),
+    // we fallback to http://localhost:8000.
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if (window.location.port !== '8080' && window.location.port !== '') {
+        return 'http://localhost:8000';
+      }
+    }
+    return '';
+  };
+
   let pdfBackendAvailable = false;
 
   async function checkPdfBackend() {
     try {
-      const response = await fetch('http://localhost:8000/api/health', {
+      const response = await fetch(getBackendUrl() + '/api/health', {
         method: 'GET',
         signal: AbortSignal.timeout(1500)
       });
@@ -6720,7 +6733,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const controller = new AbortController();
       pdfExportModal.abortController = controller;
 
-      const response = await fetch('http://localhost:8000/api/export/pdf', {
+      const response = await fetch(getBackendUrl() + '/api/export/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -6776,7 +6789,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (downloadUrl) {
         pdfExportModal.updateProgress(98, 'Downloading...', 'Saving PDF file...');
-        const downloadResponse = await fetch(`http://localhost:8000${downloadUrl}`);
+        const downloadResponse = await fetch(getBackendUrl() + downloadUrl);
         if (!downloadResponse.ok) {
           throw new Error('Failed to retrieve PDF download');
         }
