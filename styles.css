@@ -3753,4 +3753,87 @@ html[lang="ko"] .markdown-body h1, html[lang="ko"] .markdown-body h2, html[lang=
     transition: none;
   }
 }
+
+/* ==========================================================================
+   PDF Export Progress Modal
+   ========================================================================== */
+.pdf-export-modal-box {
+  max-width: 420px;
+  min-width: 340px;
+}
+
+.pdf-export-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+}
+
+.pdf-progress-icon {
+  font-size: 2.5rem;
+  color: var(--accent-color);
+  animation: pdf-pulse 2s ease-in-out infinite;
+}
+
+.pdf-progress-icon.complete {
+  color: #2ea043;
+  animation: none;
+}
+
+.pdf-progress-icon.error {
+  color: #f85149;
+  animation: none;
+}
+
+@keyframes pdf-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.95); }
+}
+
+.pdf-progress-stage {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.pdf-progress-bar-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdf-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pdf-progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent-color), #58a6ff);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pdf-progress-percent {
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-progress-detail {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #57606a);
+  text-align: center;
+}
+
 

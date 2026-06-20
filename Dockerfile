@@ -32,10 +32,17 @@ RUN echo 'server { \
     try_files $uri $uri/ /index.html; \
     } \
     \
-    # Cache static assets \
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ { \
-    expires 1y; \
-    add_header Cache-Control "public, immutable"; \
+    # Cache static assets config \
+    location = /sw.js { \
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always; \
+        expires off; \
+    } \
+    location ~* \.(html|js|css)$ { \
+        add_header Cache-Control "no-cache" always; \
+    } \
+    location ~* \.(png|jpg|jpeg|gif|ico|svg)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, no-transform"; \
     } \
     \
     # Security headers \
@@ -44,7 +51,7 @@ RUN echo 'server { \
     add_header X-XSS-Protection "1; mode=block" always; \
     add_header Referrer-Policy "strict-origin-when-cross-origin" always; \
     # PERF-029: Content Security Policy for defense-in-depth \
-    add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; style-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' https: data: blob:; font-src '"'"'self'"'"' cdn.jsdelivr.net; connect-src '"'"'self'"'"' api.github.com raw.githubusercontent.com;" always; \
+    add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; style-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' https: data: blob:; font-src '"'"'self'"'"' cdn.jsdelivr.net; connect-src '"'"'self'"'"' api.github.com raw.githubusercontent.com http://localhost:8000 cdnjs.cloudflare.com cdn.jsdelivr.net;" always; \
     }' > /etc/nginx/conf.d/default.conf
 
 # Expose port 80

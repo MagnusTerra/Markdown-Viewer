@@ -507,6 +507,38 @@
         </div>
 
 
+        <!-- PDF Export Progress Modal -->
+        <div id="pdf-export-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pdf-export-title" aria-hidden="true" style="display:none;">
+          <div class="reset-modal-box modal-box pdf-export-modal-box">
+            <div class="modal-header">
+              <p id="pdf-export-title" class="reset-modal-message">Exporting PDF</p>
+              <button type="button" class="modal-close-btn" id="pdf-export-close" aria-label="Cancel PDF export">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="pdf-export-body">
+              <div class="pdf-progress-icon">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </div>
+              <div class="pdf-progress-stage" id="pdf-progress-stage">
+                Preparing...
+              </div>
+              <div class="pdf-progress-bar-container">
+                <div class="pdf-progress-bar" id="pdf-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <div class="pdf-progress-bar-fill"></div>
+                </div>
+                <span class="pdf-progress-percent" id="pdf-progress-percent">0%</span>
+              </div>
+              <p class="pdf-progress-detail" id="pdf-progress-detail">
+                Starting export...
+              </p>
+            </div>
+            <div class="reset-modal-actions">
+              <button class="reset-modal-btn reset-modal-cancel" id="pdf-export-cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Help Modal -->
         <div id="help-modal" class="reset-modal-overlay modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" aria-hidden="true" style="display:none;">
           <div class="reset-modal-box reset-modal-box--xl modal-box">

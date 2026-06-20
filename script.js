@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // View Mode State - Story 1.1
   let currentViewMode = 'split'; // 'editor', 'split', or 'preview'
-  const APP_VERSION = '3.7.5';
+  const APP_VERSION = '3.7.7';
   let activeModal = null;
   let lastFocusedElement = null;
   let isFindModalOpen = false;
@@ -6477,124 +6477,376 @@ document.addEventListener("DOMContentLoaded", function () {
   // End Oversized Graphics Scaling Functions
   // ============================================
 
+  // ============================================
+  // PDF Export Translations and Modal Logic
+  // ============================================
+  const PDF_TRANSLATIONS = {
+    en: {
+      pdfExportTitle: "Exporting PDF",
+      pdfPreparing: "Preparing...",
+      pdfStarting: "Starting export...",
+      pdfSending: "Sending to server...",
+      pdfRendering: "Rendering content...",
+      pdfMermaid: "Rendering diagrams...",
+      pdfMathJax: "Rendering formulas...",
+      pdfGenerating: "Generating PDF...",
+      pdfFinalizing: "Finalizing...",
+      pdfComplete: "Export Complete!",
+      pdfDownloaded: "Your PDF has been downloaded.",
+      pdfFailed: "Export Failed",
+      pdfCancel: "Cancel"
+    },
+    es: {
+      pdfExportTitle: "Exportando PDF",
+      pdfPreparing: "Preparando...",
+      pdfStarting: "Iniciando exportación...",
+      pdfSending: "Enviando al servidor...",
+      pdfRendering: "Renderizando contenido...",
+      pdfMermaid: "Renderizando diagramas...",
+      pdfMathJax: "Renderizando fórmulas...",
+      pdfGenerating: "Generando PDF...",
+      pdfFinalizing: "Finalizando...",
+      pdfComplete: "¡Exportación completada!",
+      pdfDownloaded: "Tu PDF ha sido descargado.",
+      pdfFailed: "Error al exportar",
+      pdfCancel: "Cancelar"
+    }
+  };
+
+  function getPdfTranslation(key) {
+    const lang = (typeof activeLang !== 'undefined' && activeLang) || 'en';
+    const dict = PDF_TRANSLATIONS[lang] || PDF_TRANSLATIONS.en;
+    return dict[key] || PDF_TRANSLATIONS.en[key] || key;
+  }
+
+  // PDF Export Modal Controller
+  const pdfExportModal = {
+    overlay: document.getElementById('pdf-export-modal'),
+    stage: document.getElementById('pdf-progress-stage'),
+    bar: document.querySelector('#pdf-progress-bar .pdf-progress-bar-fill'),
+    percent: document.getElementById('pdf-progress-percent'),
+    detail: document.getElementById('pdf-progress-detail'),
+    icon: document.querySelector('#pdf-export-modal .pdf-progress-icon'),
+    cancelBtn: document.getElementById('pdf-export-cancel'),
+    closeBtn: document.getElementById('pdf-export-close'),
+    title: document.getElementById('pdf-export-title'),
+    abortController: null,
+
+    open() {
+      this.overlay.style.display = 'flex';
+      requestAnimationFrame(() => {
+        this.overlay.classList.add('is-visible');
+      });
+      this.reset();
+    },
+
+    close() {
+      this.overlay.classList.remove('is-visible');
+      setTimeout(() => {
+        this.overlay.style.display = 'none';
+      }, 200);
+      if (this.abortController) {
+        this.abortController.abort();
+        this.abortController = null;
+      }
+    },
+
+    reset() {
+      this.title.textContent = getPdfTranslation('pdfExportTitle');
+      this.cancelBtn.textContent = getPdfTranslation('pdfCancel');
+      this.updateProgress(0, getPdfTranslation('pdfPreparing'), getPdfTranslation('pdfStarting'));
+      this.icon.className = 'pdf-progress-icon';
+      this.icon.innerHTML = '<i class="bi bi-file-earmark-pdf"></i>';
+    },
+
+    updateProgress(percent, stage, detail) {
+      this.bar.style.width = percent + '%';
+      this.percent.textContent = percent + '%';
+      if (stage) this.stage.textContent = stage;
+      if (detail) this.detail.textContent = detail;
+      this.bar.parentElement.setAttribute('aria-valuenow', percent);
+    },
+
+    showSuccess() {
+      this.icon.className = 'pdf-progress-icon complete';
+      this.icon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+      this.updateProgress(100, getPdfTranslation('pdfComplete'), getPdfTranslation('pdfDownloaded'));
+    },
+
+    showError(message) {
+      this.icon.className = 'pdf-progress-icon error';
+      this.icon.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>';
+      this.stage.textContent = getPdfTranslation('pdfFailed');
+      this.detail.textContent = message;
+    }
+  };
+
+  // Wire up modal buttons
+  if (pdfExportModal.cancelBtn) pdfExportModal.cancelBtn.addEventListener('click', () => pdfExportModal.close());
+  if (pdfExportModal.closeBtn) pdfExportModal.closeBtn.addEventListener('click', () => pdfExportModal.close());
+  if (pdfExportModal.overlay) {
+    pdfExportModal.overlay.addEventListener('click', (e) => {
+      if (e.target === pdfExportModal.overlay) pdfExportModal.close();
+    });
+  }
+
+  let pdfBackendAvailable = false;
+
+  async function checkPdfBackend() {
+    try {
+      const response = await fetch('http://localhost:8000/api/health', {
+        method: 'GET',
+        signal: AbortSignal.timeout(1500)
+      });
+      pdfBackendAvailable = response.ok;
+    } catch (e) {
+      pdfBackendAvailable = false;
+    }
+    console.log("PDF Backend availability: ", pdfBackendAvailable);
+  }
+
+  // Check backend availability on load
+  checkPdfBackend();
+
   exportPdf.addEventListener("click", async function () {
-    // PERF-002: Lazy-load PDF libraries on first export
+    // 1. Show the modal
+    pdfExportModal.open();
+    pdfExportModal.updateProgress(2, getPdfTranslation('pdfPreparing'), getPdfTranslation('pdfStarting'));
+
+    const markdown = markdownEditor.value;
+    const { frontmatter, body } = parseFrontmatter(markdown);
+    const tableHtml = frontmatter ? renderFrontmatterTable(frontmatter) : '';
+    const referenceData = extractReferenceDefinitions(body);
+    const html = tableHtml + marked.parse(referenceData.cleanedMarkdown);
+    const sanitizedHtml = DOMPurify.sanitize(html, {
+      ADD_TAGS: ['mjx-container', 'svg', 'path', 'g', 'marker', 'defs', 'pattern', 'clipPath', 'input'],
+      ADD_ATTR: ['id', 'class', 'style', 'align', 'viewBox', 'd', 'fill', 'stroke', 'transform', 'marker-end', 'marker-start', 'type', 'checked', 'disabled', 'data-original-code']
+    });
+
+    // Render MathJax and Mermaid on a temporary element
+    pdfExportModal.updateProgress(8, getPdfTranslation('pdfRendering'), 'Preparing content...');
+
+    const tempElement = document.createElement("div");
+    tempElement.className = "markdown-body pdf-export";
+    tempElement.innerHTML = sanitizedHtml;
+    applyReferencePreviewLinks(tempElement, referenceData.definitions);
+    enhanceGitHubAlerts(tempElement);
+
+    if (typeof joypixels === 'undefined' && typeof loadScript === 'function') {
+      try {
+        await Promise.all([
+          loadScript(CDN.joypixels),
+          loadStyle(CDN.joypixels_css)
+        ]);
+      } catch (e) {
+        console.warn("JoyPixels load failed:", e);
+      }
+    }
+    processEmojis(tempElement);
+    tempElement.style.padding = "20px";
+    tempElement.style.width = "210mm";
+    tempElement.style.margin = "0 auto";
+    tempElement.style.fontSize = "13px";
+    tempElement.style.position = "absolute";
+    tempElement.style.left = "0";
+    tempElement.style.top = "0";
+    tempElement.style.zIndex = "-9999";
+    tempElement.style.visibility = "visible";
+
+    const currentTheme = document.documentElement.getAttribute("data-theme") || "light";
+    tempElement.style.backgroundColor = currentTheme === "dark" ? "#0d1117" : "#ffffff";
+    tempElement.style.color = currentTheme === "dark" ? "#c9d1d9" : "#24292e";
+
+    document.body.appendChild(tempElement);
+
+    // Wait a brief moment
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Compile Mermaid
+    try {
+      pdfExportModal.updateProgress(15, getPdfTranslation('pdfMermaid'), 'Generating charts...');
+      await mermaid.run({
+        nodes: tempElement.querySelectorAll('.mermaid'),
+        suppressErrors: true
+      });
+      tempElement.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
+        container.classList.remove('is-loading');
+      });
+    } catch (mermaidError) {
+      console.warn("Mermaid rendering issue:", mermaidError);
+    }
+
+    // Compile MathJax
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      try {
+        pdfExportModal.updateProgress(25, getPdfTranslation('pdfMathJax'), 'Formatting math equations...');
+        await MathJax.typesetPromise([tempElement]);
+      } catch (mathJaxError) {
+        console.warn("MathJax rendering issue:", mathJaxError);
+      }
+
+      // Hide assistive elements
+      const assistiveElements = tempElement.querySelectorAll('mjx-assistive-mml');
+      assistiveElements.forEach(el => el.remove());
+      const mathScripts = tempElement.querySelectorAll('script[type*="math"], script[type*="tex"]');
+      mathScripts.forEach(el => el.remove());
+    }
+
+    // Wait for everything to settle
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Get the exact styling content from document
+    let customStyles = '';
+    try {
+      customStyles = Array.from(document.styleSheets)
+        .map(styleSheet => {
+          try {
+            return Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n');
+          } catch (e) {
+            return '';
+          }
+        })
+        .join('\n');
+    } catch (e) {
+      console.warn("Could not read stylesheets:", e);
+    }
+
+    const filename = (document.getElementById('file-title-input')?.value || 'document').replace(/\s+/g, '_');
+
+    // Try backend export first
+    try {
+      pdfExportModal.updateProgress(35, getPdfTranslation('pdfSending'), 'Connecting to Python backend...');
+      
+      const controller = new AbortController();
+      pdfExportModal.abortController = controller;
+
+      const response = await fetch('http://localhost:8000/api/export/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          html: tempElement.innerHTML,
+          theme: currentTheme,
+          filename: filename,
+          styles: customStyles
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let downloadUrl = null;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        // SSE messages look like "data: {...}\n\n"
+        const lines = text.split('\n').filter(l => l.startsWith('data: '));
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.error) {
+              throw new Error(data.error);
+            }
+            if (data.progress !== undefined) {
+              // Adjust backend scale to be between 40% and 95%
+              const progressMapped = Math.round(40 + (data.progress / 100) * 55);
+              pdfExportModal.updateProgress(
+                progressMapped,
+                getPdfTranslation(getStageKey(data.stage)),
+                data.detail
+              );
+            }
+            if (data.download_url) {
+              downloadUrl = data.download_url;
+            }
+          } catch (jsonErr) {
+            if (jsonErr.message && jsonErr.message.includes("Server responded")) {
+              throw jsonErr;
+            }
+          }
+        }
+      }
+
+      if (downloadUrl) {
+        pdfExportModal.updateProgress(98, 'Downloading...', 'Saving PDF file...');
+        const downloadResponse = await fetch(`http://localhost:8000${downloadUrl}`);
+        if (!downloadResponse.ok) {
+          throw new Error('Failed to retrieve PDF download');
+        }
+        const blob = await downloadResponse.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `${filename}.pdf`;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+
+        pdfExportModal.showSuccess();
+        setTimeout(() => pdfExportModal.close(), 2500);
+      } else {
+        throw new Error('No download URL returned from backend');
+      }
+
+    } catch (backendError) {
+      if (backendError.name === 'AbortError') {
+        console.log('PDF export aborted by user');
+      } else {
+        console.warn("Backend PDF export failed, falling back to frontend canvas export. Error:", backendError);
+        // Fallback to frontend-only PDF generation
+        await exportPdfFrontendFallback(tempElement, filename);
+      }
+    } finally {
+      if (tempElement && tempElement.parentNode) {
+        document.body.removeChild(tempElement);
+      }
+    }
+  });
+
+  // Helper map from backend stage names to local i18n keys
+  function getStageKey(backendStage) {
+    if (!backendStage) return 'pdfGenerating';
+    const stage = backendStage.toLowerCase();
+    if (stage.includes('launching') || stage.includes('browser')) return 'pdfStarting';
+    if (stage.includes('content') || stage.includes('page')) return 'pdfRendering';
+    if (stage.includes('mermaid')) return 'pdfMermaid';
+    if (stage.includes('mathjax')) return 'pdfMathJax';
+    if (stage.includes('pdf')) return 'pdfGenerating';
+    if (stage.includes('finalizing')) return 'pdfFinalizing';
+    return 'pdfGenerating';
+  }
+
+  async function exportPdfFrontendFallback(tempElement, filename) {
+    pdfExportModal.updateProgress(45, 'Fallback', 'Loading canvas libraries...');
+
+    // Load PDF libraries on first fallback
     if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
-      exportPdf.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
-      exportPdf.disabled = true;
       try {
         await Promise.all([loadScript(CDN.jspdf), loadScript(CDN.html2canvas)]);
       } catch (e) {
         console.error('Failed to load PDF libraries:', e);
-        alert('Failed to load PDF export libraries. Please check your internet connection.');
-        exportPdf.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Export';
-        exportPdf.disabled = false;
+        pdfExportModal.showError('Failed to load PDF export libraries. Please check your internet connection.');
         return;
       }
     }
-    let tempElement = null;
-    let progressContainer = null;
-    const originalOverflow = document.body.style.overflow;
+
+    pdfExportModal.updateProgress(55, 'Fallback', 'Analyzing layout and page breaks...');
+
     try {
-      const originalText = exportPdf.innerHTML;
-      exportPdf.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
-      exportPdf.disabled = true;
-      document.body.style.overflow = "hidden";
-
-      progressContainer = document.createElement('div');
-      progressContainer.style.position = 'fixed';
-      progressContainer.style.top = '50%';
-      progressContainer.style.left = '50%';
-      progressContainer.style.transform = 'translate(-50%, -50%)';
-      progressContainer.style.padding = '15px 20px';
-      progressContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-      progressContainer.style.color = 'white';
-      progressContainer.style.borderRadius = '5px';
-      progressContainer.style.zIndex = '9999';
-      progressContainer.style.textAlign = 'center';
-
-      const statusText = document.createElement('div');
-      statusText.textContent = 'Generating PDF...';
-      progressContainer.appendChild(statusText);
-      document.body.appendChild(progressContainer);
-
-      const markdown = markdownEditor.value;
-      const html = marked.parse(markdown);
-      const sanitizedHtml = DOMPurify.sanitize(html, {
-        ADD_TAGS: ['mjx-container', 'svg', 'path', 'g', 'marker', 'defs', 'pattern', 'clipPath', 'input'],
-        ADD_ATTR: ['id', 'class', 'style', 'align', 'viewBox', 'd', 'fill', 'stroke', 'transform', 'marker-end', 'marker-start', 'type', 'checked', 'disabled', 'data-original-code']
-      });
-
-      tempElement = document.createElement("div");
-      tempElement.className = "markdown-body pdf-export";
-      tempElement.innerHTML = sanitizedHtml;
-      enhanceGitHubAlerts(tempElement);
-      tempElement.style.padding = "20px";
-      tempElement.style.width = "210mm";
-      tempElement.style.margin = "0 auto";
-      tempElement.style.fontSize = "14px";
-      tempElement.style.position = "absolute";
-      tempElement.style.left = "0";
-      tempElement.style.top = "0";
-      tempElement.style.zIndex = "-9999";
-      tempElement.style.visibility = "visible";
-
-      const currentTheme = document.documentElement.getAttribute("data-theme");
-      tempElement.style.backgroundColor = currentTheme === "dark" ? "#0d1117" : "#ffffff";
-      tempElement.style.color = currentTheme === "dark" ? "#c9d1d9" : "#24292e";
-
-      document.body.appendChild(tempElement);
-
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      try {
-        await mermaid.run({
-          nodes: tempElement.querySelectorAll('.mermaid'),
-          suppressErrors: true
-        });
-        // Remove loading state class so diagrams are visible (have opacity: 1)
-        tempElement.querySelectorAll('.mermaid-container.is-loading').forEach((container) => {
-          container.classList.remove('is-loading');
-        });
-      } catch (mermaidError) {
-        console.warn("Mermaid rendering issue:", mermaidError);
-      }
-
-      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
-        try {
-          await MathJax.typesetPromise([tempElement]);
-        } catch (mathJaxError) {
-          console.warn("MathJax rendering issue:", mathJaxError);
-        }
-
-        // Hide MathJax assistive elements that cause duplicate text in PDF
-        // These are screen reader elements that html2canvas captures as visible
-        // Use multiple CSS properties to ensure html2canvas doesn't render them
-        const assistiveElements = tempElement.querySelectorAll('mjx-assistive-mml');
-        assistiveElements.forEach(el => {
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.style.position = 'absolute';
-          el.style.width = '0';
-          el.style.height = '0';
-          el.style.overflow = 'hidden';
-          el.remove(); // Remove entirely from DOM
-        });
-
-        // Also hide any MathJax script elements that might contain source
-        const mathScripts = tempElement.querySelectorAll('script[type*="math"], script[type*="tex"]');
-        mathScripts.forEach(el => el.remove());
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Analyze and apply page-breaks for graphics (Story 1.1 + 1.2)
+      // Analyze page breaks
       const pageBreakAnalysis = applyPageBreaksWithCascade(tempElement, PAGE_CONFIG);
 
-      // Scale oversized graphics that can't fit on a single page (Story 1.3)
       if (pageBreakAnalysis.oversizedElements && pageBreakAnalysis.pageHeightPx) {
         handleOversizedElements(pageBreakAnalysis.oversizedElements, pageBreakAnalysis.pageHeightPx);
       }
+
+      pdfExportModal.updateProgress(65, 'Fallback', 'Rendering content to canvas...');
 
       const pdfOptions = {
         orientation: 'portrait',
@@ -6619,6 +6871,8 @@ document.addEventListener("DOMContentLoaded", function () {
         windowHeight: tempElement.scrollHeight
       });
 
+      pdfExportModal.updateProgress(85, 'Fallback', 'Assembling PDF pages...');
+
       const scaleFactor = canvas.width / contentWidth;
       const imgHeight = canvas.height / scaleFactor;
       const pagesCount = Math.ceil(imgHeight / (pageHeight - margin * 2));
@@ -6641,38 +6895,16 @@ document.addEventListener("DOMContentLoaded", function () {
         pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, destHeight);
       }
 
-      pdf.save("document.pdf");
+      pdfExportModal.updateProgress(95, 'Fallback', 'Saving PDF...');
+      pdf.save(`${filename}.pdf`);
+      pdfExportModal.showSuccess();
+      setTimeout(() => pdfExportModal.close(), 2500);
 
-      statusText.textContent = 'Download successful!';
-      setTimeout(() => {
-        if (progressContainer && progressContainer.parentNode) {
-          document.body.removeChild(progressContainer);
-        }
-      }, 1500);
-
-      if (tempElement && tempElement.parentNode) {
-        document.body.removeChild(tempElement);
-      }
-      document.body.style.overflow = originalOverflow;
-      exportPdf.innerHTML = originalText;
-      exportPdf.disabled = false;
-
-    } catch (error) {
-      console.error("PDF export failed:", error);
-      alert("PDF export failed: " + error.message);
-      exportPdf.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> Export';
-      exportPdf.disabled = false;
-
-      if (tempElement && tempElement.parentNode) {
-        document.body.removeChild(tempElement);
-      }
-      document.body.style.overflow = originalOverflow;
-
-      if (progressContainer && progressContainer.parentNode) {
-        document.body.removeChild(progressContainer);
-      }
+    } catch (err) {
+      console.error("Frontend fallback PDF failed:", err);
+      pdfExportModal.showError(err.message);
     }
-  });
+  }
 
   copyMarkdownButton.addEventListener("click", function () {
     try {

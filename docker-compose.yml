@@ -12,3 +12,15 @@ services:
     environment:
       - NGINX_HOST=localhost
       - NGINX_PORT=80
+    depends_on:
+      - pdf-service
+
+  pdf-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    container_name: pdf-service
+    restart: unless-stopped
+
