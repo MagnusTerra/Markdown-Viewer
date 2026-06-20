@@ -14,6 +14,8 @@ COPY assets/icon.jpg /usr/share/nginx/html/assets/
 # Define default environment variables (overridden in Railway)
 ENV PORT=80
 ENV BACKEND_URL=http://pdf-service:8000
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+ENV NGINX_LOCAL_RESOLVERS=127.0.0.11
 
 # Create Nginx templates directory
 RUN mkdir -p /etc/nginx/templates
@@ -41,7 +43,9 @@ RUN echo 'server { \
     \
     # Proxy /api/ to the backend service \
     location /api/ { \
-        proxy_pass ${BACKEND_URL}/api/; \
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=10s; \
+        set $backend "${BACKEND_URL}"; \
+        proxy_pass $backend; \
         proxy_http_version 1.1; \
         proxy_set_header Upgrade $http_upgrade; \
         proxy_set_header Connection '"'"'upgrade'"'"'; \
