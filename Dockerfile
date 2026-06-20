@@ -54,6 +54,9 @@ RUN echo 'server { \
     add_header Content-Security-Policy "default-src '"'"'self'"'"'; script-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; style-src '"'"'self'"'"' cdnjs.cloudflare.com cdn.jsdelivr.net '"'"'unsafe-inline'"'"'; img-src '"'"'self'"'"' https: data: blob:; font-src '"'"'self'"'"' cdn.jsdelivr.net; connect-src '"'"'self'"'"' api.github.com raw.githubusercontent.com http://localhost:8000 cdnjs.cloudflare.com cdn.jsdelivr.net;" always; \
     }' > /etc/nginx/conf.d/default.conf
 
+# Limit worker processes to 1 to prevent resource exhaustion on cloud hosts (e.g. Railway)
+RUN sed -i 's/worker_processes.*/worker_processes 1;/g' /etc/nginx/nginx.conf
+
 # Expose port 80
 EXPOSE 80
 
