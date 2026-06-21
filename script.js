@@ -7833,6 +7833,44 @@ document.addEventListener("DOMContentLoaded", function () {
       placeholder: "Digite seu markdown aqui...",
       loadingEmojis: "Carregando emojis...",
       loadingFiles: "Buscando árvore de arquivos..."
+    },
+    es: {
+      title: "Visualizador de Markdown",
+      syncOff: "Desactivar Sincro",
+      syncOn: "Activar Sincro",
+      import: "Importar",
+      importFile: "Desde archivos",
+      importGithub: "Desde GitHub",
+      export: "Exportar",
+      exportMd: "Markdown (.md)",
+      exportHtml: "HTML",
+      exportPdf: "PDF",
+      copy: "Copiar",
+      copied: "¡Copiado!",
+      share: "Compartir",
+      reset: "Restablecer",
+      editor: "Editor",
+      split: "Dividir",
+      preview: "Vista previa",
+      minRead: "Min de lectura",
+      words: "Palabras",
+      chars: "Caracteres",
+      switchRtl: "Cambiar a RTL",
+      switchLtr: "Cambiar a LTR",
+      darkMode: "Modo Oscuro",
+      lightMode: "Modo Claro",
+      helpTitle: "Ayuda del Visualizador de Markdown",
+      aboutTitle: "Acerca de Markdown",
+      shareTitle: "Compartir Documento",
+      renameTitle: "Renombrar archivo",
+      insertLink: "Insertar enlace",
+      insertRef: "Insertar referencia",
+      insertImg: "Insertar imagen",
+      insertTable: "Insertar tabla",
+      findReplace: "Buscar y Reemplazar",
+      placeholder: "Escribe tu markdown aquí...",
+      loadingEmojis: "Cargando emojis...",
+      loadingFiles: "Obteniendo árbol de archivos..."
     }
   };
 
@@ -7850,12 +7888,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Update dynamic current language labels in drop menus
     const labelEl = document.getElementById('current-lang-label');
     if (labelEl) {
-      const flags = { en: "🇺🇸 English", zh: "🇨🇳 简体中文", ja: "🇯🇵 日本語", ko: "🇰🇷 한국어", pt: "🇧🇷 Português (Brasil)" };
+      const flags = { en: "🇺🇸 English", zh: "🇨🇳 简体中文", ja: "🇯🇵 日本語", ko: "🇰🇷 한국어", pt: "🇧🇷 Português (Brasil)", es: "🇪🇸 Español" };
       labelEl.textContent = flags[lang];
     }
     const mobileLabelEl = document.getElementById('mobile-current-lang-label');
     if (mobileLabelEl) {
-      const flags = { en: "us English", zh: "CN 简体中文", ja: "JP 日本語", ko: "KR 한국어", pt: "BR Português (Brasil)" };
+      const flags = { en: "us English", zh: "CN 简体中文", ja: "JP 日本語", ko: "KR 한국어", pt: "BR Português (Brasil)", es: "ES Español" };
       mobileLabelEl.textContent = flags[lang];
     }
 
