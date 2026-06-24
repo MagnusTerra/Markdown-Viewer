@@ -34,5 +34,5 @@ Markdown Viewer began as a lightweight Markdown parser. Over time, it matured in
 - Both versions are **client-side** applications with no server-side data storage.
 - Share links encode content directly into the URL hash.
 - Release history and code changes are publicly visible on GitHub:
-  - [Releases](https://github.com/ThisIs-Developer/Markdown-Viewer/releases)
-  - [Commit history](https://github.com/ThisIs-Developer/Markdown-Viewer/commits/main)
+  - [Releases](https://github.com/MagnusTerra/Markdown-Viewer/releases)
+  - [Commit history](https://github.com/MagnusTerra/Markdown-Viewer/commits/main)

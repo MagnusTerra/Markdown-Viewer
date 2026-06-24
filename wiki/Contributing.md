@@ -27,7 +27,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ## Reporting Bugs
 
-1. **Check existing issues** first: [GitHub Issues](https://github.com/ThisIs-Developer/Markdown-Viewer/issues)
+1. **Check existing issues** first: [GitHub Issues](https://github.com/MagnusTerra/Markdown-Viewer/issues)
 2. If the bug hasn't been reported, open a new issue with:
    - A clear, descriptive title
    - Steps to reproduce the bug
@@ -66,7 +66,7 @@ If you discover a security issue, please report it responsibly:
 No build tools are required. Serve the root directory with any static server:
 
 ```bash
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 python3 -m http.server 8080
 # or: npx serve . -p 8080

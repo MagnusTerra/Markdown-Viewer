@@ -75,7 +75,7 @@ The `Dockerfile` builds a production image using `nginx:alpine`. The embedded Ng
 The container always listens on port `80` internally. Map it to a different host port via `-p`:
 
 ```bash
-docker run -p 3000:80 ghcr.io/thisis-developer/markdown-viewer:latest
+docker run -p 3000:80 ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 ### Serving at a Sub-Path
@@ -98,7 +98,7 @@ The `docker-compose.yml` in the repository root:
 ```yaml
 services:
   markdown-viewer:
-    image: ghcr.io/thisis-developer/markdown-viewer:latest
+    image: ghcr.io/MagnusTerra/Markdown-Viewer:latest
     container_name: markdown-viewer
     ports:
       - "8080:80"
@@ -216,7 +216,7 @@ Located at `.github/workflows/docker-publish.yml`.
 |---------|-------|
 | Trigger | Push to `main`, Pull requests |
 | Registry | `ghcr.io` |
-| Image name | `thisis-developer/markdown-viewer` |
+| Image name | `MagnusTerra/Markdown-Viewer` |
 | Tags generated | `latest` (on main), branch name, PR number, commit SHA |
 | Platforms | `linux/amd64`, `linux/arm64` |
 

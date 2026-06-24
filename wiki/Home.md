@@ -14,9 +14,9 @@ Markdown Viewer is a **professional, feature-rich, GitHub-style Markdown editor 
 
 | Platform | Quick Command |
 |----------|--------------|
-| **Docker** | `docker run -p 8080:80 ghcr.io/thisis-developer/markdown-viewer:latest` |
+| **Docker** | `docker run -p 8080:80 ghcr.io/MagnusTerra/Markdown-Viewer:latest` |
 | **Docker Compose** | `docker compose up -d` |
-| **Desktop App** | Download the binary from [Releases](https://github.com/ThisIs-Developer/Markdown-Viewer/releases) |
+| **Desktop App** | Download the binary from [Releases](https://github.com/MagnusTerra/Markdown-Viewer/releases) |
 | **Web (self-hosted)** | Serve the root directory with any static web server |
 
 Then open **http://localhost:8080** in your browser.
@@ -94,7 +94,7 @@ Markdown Viewer is designed to be transparent about how your data is handled:
 
 ## Links
 
-- 🏠 [GitHub Repository](https://github.com/ThisIs-Developer/Markdown-Viewer)
-- 🐳 [Docker Image (GHCR)](https://github.com/ThisIs-Developer/Markdown-Viewer/pkgs/container/markdown-viewer)
-- 📦 [Releases](https://github.com/ThisIs-Developer/Markdown-Viewer/releases)
-- 📄 [License (Apache 2.0)](https://github.com/ThisIs-Developer/Markdown-Viewer/blob/main/LICENSE)
+- 🏠 [GitHub Repository](https://github.com/MagnusTerra/Markdown-Viewer)
+- 🐳 [Docker Image (GHCR)](https://github.com/MagnusTerra/Markdown-Viewer/pkgs/container/markdown-viewer)
+- 📦 [Releases](https://github.com/MagnusTerra/Markdown-Viewer/releases)
+- 📄 [License (Apache 2.0)](https://github.com/MagnusTerra/Markdown-Viewer/blob/main/LICENSE)

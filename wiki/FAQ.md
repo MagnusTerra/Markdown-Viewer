@@ -12,7 +12,7 @@ Markdown Viewer is a free, open-source, GitHub-style Markdown editor and live-pr
 
 ### Is it free to use?
 
-Yes. Markdown Viewer is completely free and open-source under the [Apache 2.0 License](https://github.com/ThisIs-Developer/Markdown-Viewer/blob/main/LICENSE).
+Yes. Markdown Viewer is completely free and open-source under the [Apache 2.0 License](https://github.com/MagnusTerra/Markdown-Viewer/blob/main/LICENSE).
 
 ### Do I need to create an account?
 
@@ -94,10 +94,10 @@ The quickest options are:
 
 ```bash
 # With Docker:
-docker run -p 8080:80 ghcr.io/thisis-developer/markdown-viewer:latest
+docker run -p 8080:80 ghcr.io/MagnusTerra/Markdown-Viewer:latest
 
 # With Python:
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 python3 -m http.server 8080
 ```
@@ -116,7 +116,7 @@ Yes. The web app is pure HTML/CSS/JavaScript with no build step. Clone the repos
 
 ### Is there a desktop version?
 
-Yes. A native cross-platform desktop app is available for Windows, Linux, and macOS, built with [Neutralinojs](https://neutralino.js.org/). Download the binary for your platform from the [Releases page](https://github.com/ThisIs-Developer/Markdown-Viewer/releases).
+Yes. A native cross-platform desktop app is available for Windows, Linux, and macOS, built with [Neutralinojs](https://neutralino.js.org/). Download the binary for your platform from the [Releases page](https://github.com/MagnusTerra/Markdown-Viewer/releases).
 
 See the [Desktop App](Desktop-App) wiki page for build instructions.
 
@@ -128,7 +128,7 @@ See the [Desktop App](Desktop-App) wiki page for build instructions.
 
 1. Make sure JavaScript is enabled in your browser.
 2. Try a hard refresh (`Ctrl+Shift+R` / `Cmd+Shift+R`).
-3. Check the browser console (F12 → Console) for errors and report them as a [GitHub Issue](https://github.com/ThisIs-Developer/Markdown-Viewer/issues).
+3. Check the browser console (F12 → Console) for errors and report them as a [GitHub Issue](https://github.com/MagnusTerra/Markdown-Viewer/issues).
 
 ### Math equations are not rendering.
 
@@ -181,4 +181,4 @@ See the [Contributing](Contributing) page for the full guide. In summary:
 
 ### Where do I report bugs or request features?
 
-Open a [GitHub Issue](https://github.com/ThisIs-Developer/Markdown-Viewer/issues) with a clear description and (for bugs) steps to reproduce.
+Open a [GitHub Issue](https://github.com/MagnusTerra/Markdown-Viewer/issues) with a clear description and (for bugs) steps to reproduce.

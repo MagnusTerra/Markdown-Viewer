@@ -1,6 +1,6 @@
 # Markdown Viewer Desktop App Port
 
-This is a desktop app port of [Markdown Viewer](https://github.com/ThisIs-Developer/Markdown-Viewer), see [README](../README.md). It is built using [Neutralinojs](https://github.com/neutralinojs/neutralinojs).
+This is a desktop app port of [Markdown Viewer](https://github.com/MagnusTerra/Markdown-Viewer), see [README](../README.md). It is built using [Neutralinojs](https://github.com/neutralinojs/neutralinojs).
 
 ## Architecture
 
@@ -100,8 +100,8 @@ Each release includes:
 The desktop version uses [Neutralinojs](https://github.com/neutralinojs/neutralinojs), which is also licensed under the MIT License.
 
 - [Neutralinojs](https://github.com/neutralinojs/neutralinojs): [LICENSE (MIT)](LICENSE)
-- [Markdown Viewer & Desktop Port](https://github.com/ThisIs-Developer/Markdown-Viewer): [LICENSE (MIT)](../LICENSE)
+- [Markdown Viewer & Desktop Port](https://github.com/MagnusTerra/Markdown-Viewer): [LICENSE (MIT)](../LICENSE)
 
 ## Contributors
 
-[![Contributors](https://contrib.rocks/image?repo=ThisIs-Developer/Markdown-Viewer)](https://github.com/ThisIs-Developer/Markdown-Viewer/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=MagnusTerra/Markdown-Viewer)](https://github.com/MagnusTerra/Markdown-Viewer/graphs/contributors)

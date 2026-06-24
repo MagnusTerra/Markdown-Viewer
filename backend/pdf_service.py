@@ -42,7 +42,7 @@ TEMPLATE_CONTENT = """<!DOCTYPE html>
             page-break-after: avoid;
             break-after: avoid;
         }
-        pre, blockquote, table, img, svg {
+        pre, blockquote, table, img, svg, .mermaid, .mermaid-container, .mermaid-svg, mjx-container {
             page-break-inside: avoid;
             break-inside: avoid;
         }
@@ -50,9 +50,13 @@ TEMPLATE_CONTENT = """<!DOCTYPE html>
             body {
                 background-color: {{ bg_color }} !important;
                 color: {{ text_color }} !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             .markdown-body {
-                padding: 0;
+                padding: 0 !important;
+                min-height: auto !important;
+                background-color: transparent !important;
             }
         }
     </style>
@@ -140,7 +144,7 @@ async def generate_pdf_with_progress(html_content: str, theme: str, pdf_path: st
                 },
                 display_header_footer=True,
                 header_template='<div style="font-size: 8px; color: transparent; margin: 0; padding: 0;"></div>',
-                footer_template='<div style="font-size: 10px; color: #888; width: 100%; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Helvetica, Arial, sans-serif; margin-bottom: 5mm;"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+                footer_template='<div style="font-size: 10px; color: #888888; width: 100%; text-align: center; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; padding-top: 5px;"><span class="pageNumber"></span> / <span class="totalPages"></span></div>',
                 prefer_css_page_size=False
             )
 

@@ -23,7 +23,7 @@ docker run -d \
   --name markdown-viewer \
   -p 8080:80 \
   --restart unless-stopped \
-  ghcr.io/thisis-developer/markdown-viewer:latest
+  ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 Then open **http://localhost:8080** in your browser.
@@ -45,7 +45,7 @@ For a more reproducible local setup, clone the repository and use Docker Compose
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 ```
 
@@ -68,7 +68,7 @@ docker compose down
 ```yaml
 services:
   markdown-viewer:
-    image: ghcr.io/thisis-developer/markdown-viewer:latest
+    image: ghcr.io/MagnusTerra/Markdown-Viewer:latest
     container_name: markdown-viewer
     ports:
       - "8080:80"
@@ -86,7 +86,7 @@ Because the application is 100% client-side, you can serve it from any static we
 ### Clone the repository
 
 ```bash
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 ```
 
@@ -118,7 +118,7 @@ Markdown Viewer is also available as a cross-platform native desktop application
 
 ### Download a Pre-Built Binary
 
-Go to the [Releases page](https://github.com/ThisIs-Developer/Markdown-Viewer/releases) and download the appropriate binary for your platform:
+Go to the [Releases page](https://github.com/MagnusTerra/Markdown-Viewer/releases) and download the appropriate binary for your platform:
 
 | Platform | File |
 |----------|------|

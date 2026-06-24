@@ -25,7 +25,7 @@ docker run -d \
   --name markdown-viewer \
   -p 8080:80 \
   --restart unless-stopped \
-  ghcr.io/thisis-developer/markdown-viewer:latest
+  ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 Open **http://localhost:8080**.
@@ -37,13 +37,13 @@ Open **http://localhost:8080**.
 ### Basic Usage
 
 ```bash
-docker run -p 8080:80 ghcr.io/thisis-developer/markdown-viewer:latest
+docker run -p 8080:80 ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 ### With a Custom Port
 
 ```bash
-docker run -p 3000:80 ghcr.io/thisis-developer/markdown-viewer:latest
+docker run -p 3000:80 ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 ### Named Container with Restart Policy
@@ -53,14 +53,14 @@ docker run -d \
   --name markdown-viewer \
   -p 8080:80 \
   --restart unless-stopped \
-  ghcr.io/thisis-developer/markdown-viewer:latest
+  ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 ### Pull a Specific Version
 
 ```bash
-docker pull ghcr.io/thisis-developer/markdown-viewer:<tag>
-docker run -p 8080:80 ghcr.io/thisis-developer/markdown-viewer:<tag>
+docker pull ghcr.io/MagnusTerra/Markdown-Viewer:<tag>
+docker run -p 8080:80 ghcr.io/MagnusTerra/Markdown-Viewer:<tag>
 ```
 
 Available tags: `latest`, `main`, and commit SHA tags (e.g., `abc1234`).
@@ -94,7 +94,7 @@ docker compose up -d --build
 ```yaml
 services:
   markdown-viewer:
-    image: ghcr.io/thisis-developer/markdown-viewer:latest
+    image: ghcr.io/MagnusTerra/Markdown-Viewer:latest
     container_name: markdown-viewer
     ports:
       - "8080:80"
@@ -109,7 +109,7 @@ To change the host port, update the left value in `"8080:80"` to your desired po
 
 ```bash
 # From the repository root
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 
 docker build -t markdown-viewer:local .
@@ -196,13 +196,13 @@ The GitHub Actions workflow `.github/workflows/docker-publish.yml` automatically
 Images are published to:
 
 ```
-ghcr.io/thisis-developer/markdown-viewer
+ghcr.io/MagnusTerra/Markdown-Viewer
 ```
 
 You can pull the image without authentication (public repository):
 
 ```bash
-docker pull ghcr.io/thisis-developer/markdown-viewer:latest
+docker pull ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 
 ---
@@ -244,7 +244,7 @@ markdown.example.com {
 ```yaml
 services:
   markdown-viewer:
-    image: ghcr.io/thisis-developer/markdown-viewer:latest
+    image: ghcr.io/MagnusTerra/Markdown-Viewer:latest
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.markdown.rule=Host(`markdown.example.com`)"

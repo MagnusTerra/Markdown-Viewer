@@ -150,7 +150,7 @@ Create bullet points:
 
 ### **Links and Images**
 
-Add a [link](https://github.com/ThisIs-Developer/Markdown-Viewer) to important resources.
+Add a [link](https://github.com/MagnusTerra/Markdown-Viewer) to important resources.
 
 Embed an image:
 ![Markdown Logo](https://markdownviewer.pages.dev/assets/icon.jpg)

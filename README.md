@@ -8,28 +8,28 @@
 
   <p>
     <a href="https://markdownviewer.pages.dev/" target="_blank" rel="noopener noreferrer">Live Demo</a> ·
-    <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki" target="_blank" rel="noopener noreferrer">Documentation</a> ·
-    <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/issues" target="_blank" rel="noopener noreferrer">Issues</a> ·
-    <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+    <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki" target="_blank" rel="noopener noreferrer">Documentation</a> ·
+    <a href="https://github.com/MagnusTerra/Markdown-Viewer/issues" target="_blank" rel="noopener noreferrer">Issues</a> ·
+    <a href="https://github.com/MagnusTerra/Markdown-Viewer/releases" target="_blank" rel="noopener noreferrer">Releases</a>
   </p>
 
   <p>
-    <img alt="License" src="https://img.shields.io/github/license/ThisIs-Developer/Markdown-Viewer?color=2ea043" />
-    <img alt="Latest release" src="https://img.shields.io/github/v/release/ThisIs-Developer/Markdown-Viewer" />
-    <img alt="Last commit" src="https://img.shields.io/github/last-commit/ThisIs-Developer/Markdown-Viewer" />
-    <img alt="Stars" src="https://img.shields.io/github/stars/ThisIs-Developer/Markdown-Viewer?style=flat" />
+    <img alt="License" src="https://img.shields.io/github/license/MagnusTerra/Markdown-Viewer?color=2ea043" />
+    <img alt="Latest release" src="https://img.shields.io/github/v/release/MagnusTerra/Markdown-Viewer" />
+    <img alt="Last commit" src="https://img.shields.io/github/last-commit/MagnusTerra/Markdown-Viewer" />
+    <img alt="Stars" src="https://img.shields.io/github/stars/MagnusTerra/Markdown-Viewer?style=flat" />
   </p>
 
   <p>
-  <a href="https://codewiki.google/github.com/thisis-developer/markdown-viewer" target="_blank" rel="noopener noreferrer">
+  <a href="https://codewiki.google/github.com/MagnusTerra/Markdown-Viewer" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/CodeWiki-Explore-4285F4?logo=wikipedia&logoColor=white&style=flat" alt="CodeWiki" />
   </a>
-  <a href="https://deepwiki.com/ThisIs-Developer/Markdown-Viewer" target="_blank" rel="noopener noreferrer">
+  <a href="https://deepwiki.com/MagnusTerra/Markdown-Viewer" target="_blank" rel="noopener noreferrer">
     <img src="https://deepwiki.com/badge.svg" />
   </a>
 </p>
 <p>
-  <a href="https://oosmetrics.com/repo/ThisIs-Developer/Markdown-Viewer" target="_blank" rel="noopener noreferrer">
+  <a href="https://oosmetrics.com/repo/MagnusTerra/Markdown-Viewer" target="_blank" rel="noopener noreferrer">
     <img src="https://api.oosmetrics.com/api/v1/badge/achievement/b13c27be-447e-489d-a04d-55f7ccaf9175.svg" />
   </a>
 </p>
@@ -127,26 +127,26 @@ docker run -d \
   --name markdown-viewer \
   -p 8080:80 \
   --restart unless-stopped \
-  ghcr.io/thisis-developer/markdown-viewer:latest
+  ghcr.io/MagnusTerra/Markdown-Viewer:latest
 ```
 Open **http://localhost:8080**.
 
 ### Option 2 — Docker Compose
 ```bash
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 docker compose up -d
 ```
 
 ### Option 3 — Static Web Server
 ```bash
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer
 python3 -m http.server 8080
 ```
 
 ### Option 4 — Desktop App
-Download pre-built binaries from the <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/releases" target="_blank" rel="noopener noreferrer">Releases</a> page or build from source (see the <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Desktop-App" target="_blank" rel="noopener noreferrer">Desktop App</a> guide).
+Download pre-built binaries from the <a href="https://github.com/MagnusTerra/Markdown-Viewer/releases" target="_blank" rel="noopener noreferrer">Releases</a> page or build from source (see the <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Desktop-App" target="_blank" rel="noopener noreferrer">Desktop App</a> guide).
 
 ---
 
@@ -171,12 +171,12 @@ Download pre-built binaries from the <a href="https://github.com/ThisIs-Develope
 
 Explore the full documentation on the wiki:
 
-- <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Features" target="_blank" rel="noopener noreferrer">Features</a>
-- <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Usage-Guide" target="_blank" rel="noopener noreferrer">Usage Guide</a>
-- <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Installation" target="_blank" rel="noopener noreferrer">Installation</a>
-- <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Markdown-Reference" target="_blank" rel="noopener noreferrer">Markdown Reference</a>
-- <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/FAQ" target="_blank" rel="noopener noreferrer">FAQ</a>
-- <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Configuration" target="_blank" rel="noopener noreferrer">Configuration</a>
+- <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Features" target="_blank" rel="noopener noreferrer">Features</a>
+- <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Usage-Guide" target="_blank" rel="noopener noreferrer">Usage Guide</a>
+- <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Installation" target="_blank" rel="noopener noreferrer">Installation</a>
+- <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Markdown-Reference" target="_blank" rel="noopener noreferrer">Markdown Reference</a>
+- <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/FAQ" target="_blank" rel="noopener noreferrer">FAQ</a>
+- <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Configuration" target="_blank" rel="noopener noreferrer">Configuration</a>
 
 ---
 
@@ -207,7 +207,7 @@ Explore the full documentation on the wiki:
 
 ## Contributing
 
-Contributions are welcome! Please review the <a href="https://github.com/ThisIs-Developer/Markdown-Viewer/wiki/Contributing" target="_blank" rel="noopener noreferrer">Contributing Guide</a> and open a pull request.
+Contributions are welcome! Please review the <a href="https://github.com/MagnusTerra/Markdown-Viewer/wiki/Contributing" target="_blank" rel="noopener noreferrer">Contributing Guide</a> and open a pull request.
 
 ---
 
@@ -215,8 +215,8 @@ Contributions are welcome! Please review the <a href="https://github.com/ThisIs-
 
 Thanks to everyone who has contributed to Markdown Viewer.
 
-<a href="https://github.com/ThisIs-Developer/Markdown-Viewer/graphs/contributors" target="_blank" rel="noopener noreferrer">
-  <img src="https://contrib.rocks/image?repo=ThisIs-Developer/Markdown-Viewer" alt="Contributors" />
+<a href="https://github.com/MagnusTerra/Markdown-Viewer/graphs/contributors" target="_blank" rel="noopener noreferrer">
+  <img src="https://contrib.rocks/image?repo=MagnusTerra/Markdown-Viewer" alt="Contributors" />
 </a>
 
 ---

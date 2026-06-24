@@ -74,7 +74,7 @@ The `prepare.js` script handles copying files from the project root into `deskto
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/ThisIs-Developer/Markdown-Viewer.git
+git clone https://github.com/MagnusTerra/Markdown-Viewer.git
 cd Markdown-Viewer/desktop-app
 
 # 2. Install npm dependencies
